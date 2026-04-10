@@ -38,14 +38,18 @@ def verify_razorpay_signature(params):
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 
+print(f"DEBUG: SUPABASE_URL present: {'Yes' if SUPABASE_URL else 'No'}")
+print(f"DEBUG: SUPABASE_KEY present: {'Yes' if SUPABASE_KEY else 'No'}")
+
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("WARNING: SUPABASE_URL or SUPABASE_KEY not found. Supabase is disabled.")
+    print("CRITICAL: SUPABASE_URL or SUPABASE_KEY not found in environment.")
     supabase = None
 else:
     try:
         supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("DEBUG: Supabase Connection Initialized.")
     except Exception as e:
-        print(f"Supabase connection failed: {e}")
+        print(f"CRITICAL: Failed to initialize Supabase client: {e}")
         supabase = None
 
 # ===== DB RETRY HELPER =====
