@@ -1,0 +1,190 @@
+{% extends "layout.html" %}
+{% block title %}Book Appointment | Salon Pro{% endblock %}
+
+{% block content %}
+<div class="dashboard-container gender-{{ session.gender }}">
+    <div class="booking-container" data-aos="fade-up" style="max-width: 800px; margin: 0 auto; padding: 4rem 2rem;">
+        <h1 style="text-align: center; background: var(--vibrant-dual); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Secure Your Slot</h1>
+        <p style="text-align: center; color: var(--text-muted); margin-bottom: 3rem;">A fixed advance of ₹50.00 is required to freeze your appointment.</p>
+
+        <div class="card" style="padding: 3rem; border-radius: 20px;">
+            <div class="form-group" style="margin-bottom: 2rem;">
+                <label><i class="fas fa-spa"></i> Select Service</label>
+                <select id="service" onchange="updatePrice()" style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee;">
+                    <option value="">Choose a service...</option>
+                    {% for service in services %}
+                    <option value="{{ service.id }}" data-price="{{ service.price }}">{{ service.name }} (₹{{ service.price }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="form-group">
+                    <label><i class="fas fa-calendar"></i> Date</label>
+                    <input type="date" id="date" min="{{ today }}" style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee;">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-clock"></i> Time</label>
+                    <select id="time" disabled style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee;">
+                        <option value="">Choose a time...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" id="staffGroup" style="display: none; margin-bottom: 2rem;">
+                <label><i class="fas fa-user-tie"></i> Select Specialist</label>
+                <select id="staffSelect" style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee;">
+                    <option value="">Choose a specialist...</option>
+                </select>
+                <p id="staffAlert" style="display: none; color: #ff6f61; font-size: 0.8rem; margin-top: 0.5rem;"></p>
+            </div>
+
+            <div style="background: #fdfdfd; padding: 2rem; border-radius: 15px; border: 1px solid #eee; margin-top: 3rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                    <span>Service Total:</span>
+                    <strong id="svcPrice">₹0.00</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1.5px dashed #eee; padding-top: 1.5rem; margin-top: 1rem;">
+                    <div>
+                        <strong style="display: block; font-size: 1.2rem; color: var(--primary);">Advance Deposit</strong>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">Required to book slot</span>
+                    </div>
+                    <strong style="font-size: 2rem; color: var(--dark);">₹50.00</strong>
+                </div>
+            </div>
+
+            <button id="payBtn" class="btn-primary" style="width: 100%; margin-top: 2rem; padding: 1.2rem; border-radius: 15px; font-weight: 700;">Pay ₹50 & Book Slot</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const serviceSelect = document.getElementById('service');
+    const dateInput = document.getElementById('date');
+    const timeSelect = document.getElementById('time');
+    const staffSelect = document.getElementById('staffSelect');
+    const payBtn = document.getElementById('payBtn');
+    const staffAlert = document.getElementById('staffAlert');
+
+    window.updatePrice = function() {
+        const selected = serviceSelect.options[serviceSelect.selectedIndex];
+        if(!selected || !selected.value) {
+            document.getElementById('svcPrice').innerText = '₹0.00';
+            return;
+        }
+        const price = selected.getAttribute('data-price') || "0.00";
+        document.getElementById('svcPrice').innerText = '₹' + price;
+    };
+
+    dateInput.addEventListener('change', async () => {
+        const date = dateInput.value;
+        const sid = serviceSelect.value;
+        if (!date || !sid) return;
+        
+        try {
+            const res = await fetch(`/api/available-slots?date=${date}&service_id=${sid}`);
+            const data = await res.json();
+            timeSelect.innerHTML = '<option value="">Choose a time...</option>';
+            if(data.slots && data.slots.length > 0) {
+                data.slots.forEach(s => { timeSelect.innerHTML += `<option value="${s}">${s}</option>`; });
+                timeSelect.disabled = false;
+            } else {
+                alert('No slots available for this service on the chosen date.');
+                timeSelect.disabled = true;
+            }
+        } catch(e) { console.error(e); }
+    });
+
+    timeSelect.addEventListener('change', async () => {
+        const date = dateInput.value;
+        const time = timeSelect.value;
+        if (!date || !time) return;
+
+        // Force show the section so the user isn't confused by a hidden required field
+        document.getElementById('staffGroup').style.display = 'block';
+        staffSelect.innerHTML = '<option value="">Searching for specialists...</option>';
+        staffSelect.disabled = true;
+
+        try {
+            const res = await fetch(`/api/available-staff?date=${date}&time=${time}`);
+            const data = await res.json();
+            
+            staffSelect.innerHTML = '<option value="">Choose a specialist...</option>';
+            staffSelect.disabled = false;
+            
+            if (data.staff && data.staff.length > 0) {
+                data.staff.forEach(s => { staffSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`; });
+                staffAlert.style.display = 'none';
+            } else {
+                staffAlert.innerText = data.message || 'All specialists are booked for this time. Please try another slot.';
+                staffAlert.style.display = 'block';
+            }
+        } catch(e) { 
+            console.error(e); 
+            staffAlert.innerText = 'Service connection error. Please refresh the page.';
+            staffAlert.style.display = 'block';
+        }
+    });
+
+    payBtn.addEventListener('click', async () => {
+        const sVal = serviceSelect.value;
+        const dVal = dateInput.value;
+        const tVal = timeSelect.value;
+        const stVal = staffSelect.value;
+
+        if(!sVal || !dVal || !tVal || !stVal) {
+            alert('Please ensure you have selected: Service, Date, Time, and a Specialist.');
+            return;
+        }
+
+        try {
+            const orderRes = await fetch('/api/payment/create-order', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ amount: 50 })
+            });
+            const orderData = await orderRes.json();
+
+            if(!orderData.success) {
+                alert('Order creation failed: ' + orderData.message);
+                return;
+            }
+
+            const options = {
+                "key": "{{ RAZOR_KEY_ID }}",
+                "amount": orderData.amount,
+                "currency": "INR",
+                "name": "Salon Pro",
+                "description": "Advance Slot Deposit",
+                "order_id": orderData.order_id,
+                "handler": async function (response) {
+                    const verifyRes = await fetch('/api/booking/verify-payment', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                            service_id: sVal,
+                            date: dVal,
+                            time: tVal,
+                            staff_id: stVal
+                        })
+                    });
+                    const v = await verifyRes.json();
+                    if(v.success) window.location.href = '/booking-confirmation';
+                    else alert(v.message);
+                }
+            };
+            const rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response){ alert('Payment failed: ' + response.error.description); });
+            rzp.open();
+        } catch (err) {
+            alert('Service connection error. Please refresh and try again.');
+        }
+    });
+});
+</script>
+{% endblock %}

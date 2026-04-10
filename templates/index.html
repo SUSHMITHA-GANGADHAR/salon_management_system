@@ -1,0 +1,152 @@
+{% extends "layout.html" %}
+
+{% block title %}Salon Pro | Premium Grooming & Beauty{% endblock %}
+
+{% block content %}
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-content" data-aos="fade-right">
+            <span class="badge">#1 Premium Salon in Town</span>
+            <h1 class="hero-title">Elevate Your <span>Presence</span> & Style</h1>
+            <p class="hero-subtitle">Bespoke grooming and beauty treatments tailored specifically for your unique elegance. Experience world-class artistry.</p>
+            <div class="hero-actions">
+                <a href="/register" class="btn-primary">Book Appointment <i class="fas fa-calendar-alt"></i></a>
+                <a href="#services" class="btn-outline">Explore Services</a>
+            </div>
+        </div>
+        <div class="hero-image" data-aos="zoom-in" data-aos-delay="200">
+            <div class="image-wrapper">
+                <img src="/static/images/hero.png" alt="Luxury Salon Interior">
+                <div class="stats-card">
+                    <i class="fas fa-heart"></i>
+                    <div>
+                        <strong>15k+</strong>
+                        <span>Happy Clients</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section class="services" id="services">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <h2 class="section-title">Our Signature Services</h2>
+                <p>Discover our range of professional treatments for both Men and Women.</p>
+            </div>
+            
+            <div class="services-grid">
+                <!-- Male Section Card -->
+                <div class="service-card" data-aos="fade-right">
+                    <div class="card-img">
+                        <img src="/static/images/male-service.png" alt="Gentlemen Grooming">
+                        <div class="card-overlay">
+                            <span>The Gentleman’s Choice</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h3>Gents Section</h3>
+                        <p>From sharp fades to therapeutic facials, rediscover the art of grooming.</p>
+                        <ul class="card-list">
+                            <li><i class="fas fa-check"></i> Modern Haircuts</li>
+                            <li><i class="fas fa-check"></i> Classic Beard Trims</li>
+                            <li><i class="fas fa-check"></i> Skin Detox</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Female Section Card -->
+                <div class="service-card" data-aos="fade-left">
+                    <div class="card-img">
+                        <img src="/static/images/female-service.png" alt="Ladies Beauty">
+                        <div class="card-overlay">
+                            <span>Pure Radiance</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h3>Ladies Section</h3>
+                        <p>Artisanal styling and luxury beauty treatments for the modern woman.</p>
+                        <ul class="card-list">
+                            <li><i class="fas fa-check"></i> High-Fashion Styles</li>
+                            <li><i class="fas fa-check"></i> Expert Makeup</li>
+                            <li><i class="fas fa-check"></i> Spa & Nails</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cta-banner" data-aos="zoom-in">
+                <h3>Ready for a transformation?</h3>
+                <a href="/register" class="btn-primary">Start Your Journey</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="about" id="about">
+        <div class="container">
+            <div class="about-flex">
+                <div class="about-img" data-aos="fade-right">
+                    <img src="/static/images/spa.png" alt="Salon Ambiance">
+                </div>
+                <div class="about-text" data-aos="fade-left">
+                    <h2 class="section-title">Why Choose <span>Salon Pro?</span></h2>
+                    <p>With over 15 years of industry excellence, we believe that beauty is a feeling, not just a service. Our team of certified professionals is dedicated to providing an unparalleled experience in a hygienic, luxurious environment.</p>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <i class="fas fa-award"></i>
+                            <h4>Expert Artists</h4>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-leaf"></i>
+                            <h4>Organic Products</h4>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-shield-alt"></i>
+                            <h4>Hygienic Space</h4>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-star"></i>
+                            <h4>Premium Care</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact" id="contact">
+        <div class="container">
+            <div class="contact-card" data-aos="flip-up">
+                <div class="contact-info">
+                    <h2 class="section-title">Get In Touch</h2>
+                    <div class="info-list">
+                        <div class="info-link">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <p>456 Luxury Blvd, Manhattan, NY</p>
+                        </div>
+                        <div class="info-link">
+                            <i class="fas fa-phone"></i>
+                            <p>+1 (800) SALON-PRO</p>
+                        </div>
+                        <div class="info-link">
+                            <i class="fas fa-envelope"></i>
+                            <p>hello@salonpro.com</p>
+                        </div>
+                    </div>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+                <div class="contact-map">
+                    <div class="map-placeholder"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+l>

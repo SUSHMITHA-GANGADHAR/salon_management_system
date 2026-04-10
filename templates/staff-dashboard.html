@@ -1,0 +1,261 @@
+{% extends "layout.html" %}
+{% block title %}Specialist Dashboard | Salon Pro{% endblock %}
+
+{% block content %}
+<div class="dashboard-container gender-{{ session.gender }}">
+    <div class="dashboard-inner" style="max-width: 1200px; margin: 0 auto; padding: 4rem 2rem;">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem;">
+            <div>
+                <h1 style="background: var(--vibrant-dual); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Specialist Portal</h1>
+                <p style="color: var(--text-muted);">Manage your appointments, approvals, and balance collections</p>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-weight: 700; color: var(--dark);">{{ user.name }}</div>
+                <div style="font-size: 0.8rem; color: var(--primary);">Expert Specialist</div>
+            </div>
+        </header>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert" style="background: #e6fffa; color: #047481; padding: 1rem; border-radius: 12px; margin-bottom: 2rem;">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <section style="margin-bottom: 4rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2><i class="fas fa-calendar-day"></i> Active Service Queue</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">{{ bookings|length }} active slots in salon</div>
+            </div>
+
+            {% if bookings %}
+            <div style="display: grid; gap: 1.5rem;">
+                {% for b in bookings if b.status != 'finished' or not b.balance_paid %}
+                <div class="card booking-card {% if b.staff_id == user.id %}assigned-to-me{% endif %}">
+                    <div style="display: flex; gap: 2rem; align-items: center;">
+                        <div style="background: var(--light); width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--primary);">
+                            {{ b.time.split(':')[0] if b.time else '00' }}H
+                        </div>
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.3rem;">
+                                <h3 style="margin: 0;">{{ b.services.name if b.services else 'Salon Service' }}</h3>
+                                <span class="badge-{{ b.status }}" style="font-size: 0.6rem; padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 700; text-transform: uppercase;">{{ b.status }}</span>
+                                {% if b.staff_id == user.id %}
+                                <span style="background: var(--primary); color: #fff; font-size: 0.6rem; padding: 0.2rem 0.6rem; border-radius: 4px; font-weight: 700;">MY TASK</span>
+                                {% endif %}
+                            </div>
+                            <div style="font-size: 0.9rem; color: var(--text-muted); display: flex; gap: 1.5rem;">
+                                <span><i class="fas fa-user"></i> Client: {{ b.customer.name if b.customer else 'Unknown' }}</span>
+                                <span><i class="fas fa-money-bill-wave"></i> Total: ₹{{ b.services.price if b.services else '0' }} (₹50 Paid)</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--primary); margin-top: 0.5rem;">
+                                <i class="fas fa-clock"></i> <strong>{{ b.date }} @ {{ b.time }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.8rem; align-items: center;">
+                        {% if b.status == 'pending' %}
+                            <button 
+                                class="btn-primary" 
+                                style="padding: 0.6rem 1.2rem; border-radius: 10px; font-size: 0.85rem;"
+                                onclick="handleStatus(this, 'approved')"
+                                data-id="{{ b.id }}"
+                                data-assigned="{{ 'yes' if b.staff_id == user.id else 'no' }}">
+                                Approve & Start
+                            </button>
+                        {% elif b.status == 'approved' %}
+                            <button 
+                                style="background: #28a745; color: #fff; padding: 0.6rem 1.2rem; border-radius: 10px; border: none; font-size: 0.85rem; cursor: pointer;"
+                                onclick="openPaymentModal(this)"
+                                data-id="{{ b.id }}"
+                                data-price="{{ b.services.price if b.services else 0 }}"
+                                data-assigned="{{ 'yes' if b.staff_id == user.id else 'no' }}">
+                                Finish & Collect Balance
+                            </button>
+                        {% endif %}
+                        
+                        <button 
+                            style="background: #f8f9fa; color: var(--text-muted); padding: 0.6rem 1.2rem; border-radius: 10px; border: 1.5px solid #eee; font-size: 0.85rem; cursor: pointer;"
+                            onclick="handleReschedule(this)"
+                            data-id="{{ b.id }}"
+                            data-date="{{ b.date }}"
+                            data-time="{{ b.time }}"
+                            data-assigned="{{ 'yes' if b.staff_id == user.id else 'no' }}">
+                            Reschedule
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card" style="padding: 5rem; text-align: center; color: var(--text-muted);">
+                <i class="fas fa-calendar-check" style="font-size: 4rem; margin-bottom: 2rem; opacity: 0.3;"></i>
+                <p>No active duty slots. All clients served!</p>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- FOOTER INFO BOXES -->
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
+            <div class="card" style="padding: 2.5rem; border-radius: 25px; background: var(--vibrant-dual); color: #fff;">
+                <h3 style="margin-bottom: 1.5rem;">Operational Summary</h3>
+                <div style="display: flex; gap: 2rem; margin-bottom: 2rem;">
+                    <div>
+                        <div style="font-size: 0.8rem; opacity: 0.9;">Total Queue</div>
+                        <div style="font-size: 2.5rem; font-weight: 700;">{{ bookings|length }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; opacity: 0.9;">Pending Approval</div>
+                        <div style="font-size: 2.5rem; font-weight: 700;">{{ bookings|selectattr('status', 'equalto', 'pending')|list|length }}</div>
+                    </div>
+                </div>
+                <p style="font-size: 0.8rem; opacity: 0.9;">Always collect the remaining balance at the front desk before marking a service as finished.</p>
+            </div>
+
+            <div class="card" style="padding: 2.5rem; border-radius: 25px;">
+                <h3 style="margin-bottom: 1.5rem;">Status Guidance</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <ul style="padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted);">
+                        <li style="margin-bottom: 0.5rem;"><strong>Pending:</strong> Customer has paid deposit.</li>
+                        <li style="margin-bottom: 0.5rem;"><strong>Approved:</strong> Client in salon, service started.</li>
+                    </ul>
+                    <ul style="padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted);">
+                        <li style="margin-bottom: 0.5rem;"><strong>Finished:</strong> Balance collected, seat sanitized.</li>
+                        <li style="margin-bottom: 0.5rem;"><strong>Reschedule:</strong> Move slots only before 1 hour.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div id="paymentModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="card" style="width: 400px; padding: 2.5rem; text-align: center;">
+        <i class="fas fa-cash-register" style="font-size: 3rem; color: var(--primary); margin-bottom: 1.5rem;"></i>
+        <h2>Final Settlement</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">Ensure the customer pays the remaining balance before finishing.</p>
+        
+        <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span>Service Total:</span>
+                <strong id="finalTotal">₹0</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem; color: #2ecc71;">
+                <span>Deposit Paid:</span>
+                <strong>- ₹50</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding-top: 1rem; border-top: 1.5px dashed #eee; font-size: 1.2rem;">
+                <strong>Balance Due:</strong>
+                <strong style="color: var(--primary);" id="balanceDue">₹0</strong>
+            </div>
+        </div>
+
+        <input type="hidden" id="paymentBookingId">
+        <div style="display: flex; gap: 1rem;">
+            <button onclick="document.getElementById('paymentModal').style.display='none'" style="flex: 1; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee; background: #fff; cursor: pointer;">Cancel</button>
+            <button onclick="submitFinalPayment()" class="btn-primary" style="flex: 1; border-radius: 12px; background: #28a745;">Collected & Finish</button>
+        </div>
+    </div>
+</div>
+
+<!-- RESCHEDULE MODAL -->
+<div id="rescheduleModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="card" style="width: 400px; padding: 2.5rem;">
+        <h2 style="margin-bottom: 2rem;">Reschedule Appointment</h2>
+        <input type="hidden" id="rescheduleId">
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 700;">New Date</label>
+            <input type="date" id="newDate" style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1.5px solid #eee;">
+        </div>
+        <div style="margin-bottom: 2.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.8rem; font-weight: 700;">New Time Slot</label>
+            <input type="time" id="newTime" style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1.5px solid #eee;">
+        </div>
+        <div style="display: flex; gap: 1rem;">
+            <button onclick="document.getElementById('rescheduleModal').style.display='none'" style="flex: 1; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee; background: #fff; cursor: pointer;">Cancel</button>
+            <button onclick="submitReschedule()" class="btn-primary" style="flex: 1; border-radius: 12px;">Update Slot</button>
+        </div>
+    </div>
+</div>
+
+<script>
+async function handleStatus(btn, status) {
+    const id = btn.getAttribute('data-id');
+    const assigned = btn.getAttribute('data-assigned');
+    if(assigned === 'no' && !confirm("Taking over this assignment for another staff?")) return;
+    try {
+        const res = await fetch('/api/booking/update-status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id, status })
+        });
+        const data = await res.json();
+        if(data.success) location.reload(); else alert(data.message);
+    } catch(e) { alert("Error."); }
+}
+
+function openPaymentModal(btn) {
+    const id = btn.getAttribute('data-id');
+    const price = parseInt(btn.getAttribute('data-price')) || 0;
+    const assigned = btn.getAttribute('data-assigned');
+    if(assigned === 'no' && !confirm("Closing assignment for another staff?")) return;
+    
+    document.getElementById('paymentBookingId').value = id;
+    document.getElementById('finalTotal').innerText = '₹' + price;
+    document.getElementById('balanceDue').innerText = '₹' + (price - 50);
+    document.getElementById('paymentModal').style.display = 'flex';
+}
+
+async function submitFinalPayment() {
+    const id = document.getElementById('paymentBookingId').value;
+    try {
+        const res = await fetch('/api/booking/collect-balance', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id })
+        });
+        const data = await res.json();
+        if(data.success) location.reload(); else alert(data.message);
+    } catch(e) { alert("Connection error."); }
+}
+
+function handleReschedule(btn) {
+    const id = btn.getAttribute('data-id');
+    const date = btn.getAttribute('data-date');
+    const time = btn.getAttribute('data-time');
+    const assigned = btn.getAttribute('data-assigned');
+    if(assigned === 'no' && !confirm("Rescheduling for another specialist?")) return;
+    document.getElementById('rescheduleId').value = id;
+    document.getElementById('newDate').value = date;
+    document.getElementById('newTime').value = time;
+    document.getElementById('rescheduleModal').style.display = 'flex';
+}
+
+async function submitReschedule() {
+    const id = document.getElementById('rescheduleId').value;
+    const date = document.getElementById('newDate').value;
+    const time = document.getElementById('newTime').value;
+    try {
+        const res = await fetch('/api/booking/reschedule', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id, date, time })
+        });
+        const data = await res.json();
+        if(data.success) location.reload(); else alert(data.message);
+    } catch(e) { alert("Error."); }
+}
+</script>
+
+<style>
+.booking-card { padding: 2rem; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #eee; background: #fff; margin-bottom: 1rem; }
+.booking-card.assigned-to-me { border-left: 5px solid var(--primary) !important; }
+.badge-pending { background: #fff3cd; color: #856404; }
+.badge-approved { background: #d1ecf1; color: #0c5460; }
+.badge-finished { background: #d4edda; color: #155724; }
+.badge-cancelled { background: #f8d7da; color: #721c24; }
+</style>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block title %}Select Section | Salon Pro{% endblock %}
+
+{% block content %}
+<div class="gender-container" data-aos="zoom-in">
+    <div class="selection-header">
+        <h1>Select Your Section</h1>
+        <p>Choose your area of expertise or interest to view tailored services</p>
+    </div>
+    
+    <div class="gender-cards">
+        <div class="gender-card male" onclick="setGender('male')">
+            <div class="card-icon"><i class="fas fa-mars"></i></div>
+            <h3>Gents Section</h3>
+            <p>Masterful cuts & grooming</p>
+        </div>
+        
+        <div class="gender-card female" onclick="setGender('female')">
+            <div class="card-icon"><i class="fas fa-venus"></i></div>
+            <h3>Ladies Section</h3>
+            <p>Premium beauty & styling</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.gender-container { padding: 6rem 2rem; text-align: center; max-width: 1000px; margin: 0 auto; }
+.selection-header { margin-bottom: 4rem; }
+.selection-header h1 { font-size: 3.5rem; color: var(--dark); font-family: 'Playfair Display', serif; }
+.gender-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; }
+.gender-card { background: #fff; padding: 4rem 2rem; border-radius: 30px; box-shadow: var(--shadow); cursor: pointer; transition: var(--transition); border-bottom: 8px solid transparent; }
+.gender-card:hover { transform: translateY(-15px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+.gender-card.male:hover { border-color: #3498db; }
+.gender-card.female:hover { border-color: #e91e63; }
+.card-icon { font-size: 4rem; margin-bottom: 1.5rem; color: var(--primary); }
+.gender-card.male i { color: #3498db; }
+.gender-card.female i { color: #e91e63; }
+.gender-card h3 { font-size: 2rem; margin-bottom: 0.5rem; }
+</style>
+
+<script>
+async function setGender(gender) {
+    try {
+        const res = await fetch('/gender-select', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gender: gender })
+        });
+        const data = await res.json();
+        if (data.success) {
+            window.location.href = data.redirect;
+        }
+    } catch (err) {
+        console.error(err);
+    }
+}
+</script>
+{% endblock %}

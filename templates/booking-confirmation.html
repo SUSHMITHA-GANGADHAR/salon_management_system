@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block title %}Deposit Confirmed | Salon Pro{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div style="max-width: 600px; margin: 0 auto; text-align: center; padding: 4rem 2rem;">
+        <div style="width: 100px; height: 100px; background: #3498db; color: #fff; border-radius: 50%; margin: 0 auto 2rem; display: flex; align-items: center; justify-content: center; font-size: 3rem; box-shadow: 0 15px 35px rgba(52, 152, 219, 0.3);">
+            <i class="fas fa-clock"></i>
+        </div>
+        <h1 style="font-family: 'Playfair Display', serif; font-size: 3rem; margin-bottom: 1rem;">Payment Received!</h1>
+        <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 3rem;">Your ₹50 deposit is secured. Your slot is now <strong>Pending Staff Approval</strong>. You will be notified once our specialist confirms your time.</p>
+
+        <!-- PRINTABLE RECEIPT -->
+        <div id="receipt" class="card" style="text-align: left; padding: 3rem; margin-bottom: 3rem; border: 1.5px dashed #ddd; background: #fff;">
+            <div style="text-align: center; border-bottom: 2px solid #eee; padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+                <h2 style="margin: 0; color: var(--primary);">SALON PRO</h2>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.3rem 0;">123 Luxury Lane, Beauty City</p>
+                <p style="font-size: 0.8rem; font-weight: 700;">DEPOSIT PAYMENT RECEIPT</p>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                <span style="color: var(--text-muted);">Current Status:</span>
+                <strong style="color: #f39c12;">PENDING STAFF APPROVAL</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                <span style="color: var(--text-muted);">Amount Paid:</span>
+                <strong style="color: #2ecc71;">₹50.00 (Booking Deposit)</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                <span style="color: var(--text-muted);">Payment Method:</span>
+                <span>Razorpay Online</span>
+            </div>
+            
+            <div style="border-top: 1px solid #eee; padding-top: 1rem; margin-top: 1rem;">
+                <p style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem;">Next Steps</p>
+                <div style="font-size: 0.9rem; line-height: 1.6; color: var(--dark);">
+                    1. Our specialist will review your selected slot.<br>
+                    2. Check your Dashboard for the "Approved" status.<br>
+                    3. The remaining balance will be due at the salon.
+                </div>
+            </div>
+            
+            <div style="margin-top: 2rem; padding: 1rem; background: #fdfdfd; border-radius: 10px; text-align: center; border: 1px solid #eee;">
+                <p style="font-size: 0.7rem; color: var(--text-muted);">Please show this receipt at the front desk upon arrival. Final confirmation depends on specialist availability.</p>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+            <button onclick="window.print()" class="btn-primary" style="padding: 1rem 2rem; border-radius: 15px;"><i class="fas fa-print"></i> Print Receipt</button>
+            <a href="/dashboard" class="btn-primary" style="padding: 1rem 2rem; border-radius: 15px; border: 2px solid var(--primary); background: transparent; color: var(--primary); text-decoration: none;">Go to Dashboard</a>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    body * { visibility: hidden; }
+    #receipt, #receipt * { visibility: visible; }
+    #receipt { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; }
+}
+</style>
+{% endblock %}

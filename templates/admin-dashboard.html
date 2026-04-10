@@ -1,0 +1,321 @@
+{% extends "layout.html" %}
+{% block title %}Owner Dashboard | Salon Pro{% endblock %}
+
+{% block content %}
+<div class="admin-layout" style="display: flex; min-height: 100vh; background: #f8f9fa;">
+    <!-- SIDEBAR -->
+    <aside
+        style="width: 280px; background: #fff; border-right: 1px solid #eee; padding: 2rem; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column;">
+        <div style="margin-bottom: 3rem; text-align: center;">
+            <i class="fas fa-gem" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem;"></i>
+            <h2 style="font-family: 'Playfair Display', serif;">Owner Panel</h2>
+        </div>
+        <nav style="flex: 1;">
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin-bottom: 0.5rem;"><a href="#" onclick="showTab('stats')" class="nav-link active"
+                        id="link-stats"
+                        style="display: flex; gap: 1rem; padding: 1rem; border-radius: 12px; font-weight: 500; text-decoration: none; color: var(--dark);"><i
+                            class="fas fa-chart-pie"></i> Business Stats</a></li>
+                <li style="margin-bottom: 0.5rem;"><a href="#" onclick="showTab('bookings')" class="nav-link"
+                        id="link-bookings"
+                        style="display: flex; gap: 1rem; padding: 1rem; border-radius: 12px; font-weight: 500; text-decoration: none; color: var(--text-muted);"><i
+                            class="fas fa-calendar-check"></i> Bookings Log</a></li>
+                <li style="margin-bottom: 0.5rem;"><a href="#" onclick="showTab('reports')" class="nav-link"
+                        id="link-reports"
+                        style="display: flex; gap: 1rem; padding: 1rem; border-radius: 12px; font-weight: 500; text-decoration: none; color: var(--text-muted);"><i
+                            class="fas fa-file-invoice-dollar"></i> Reports & Analysis</a></li>
+                <li style="margin-bottom: 0.5rem;"><a href="#" onclick="showTab('settings')" class="nav-link"
+                        id="link-settings"
+                        style="display: flex; gap: 1rem; padding: 1rem; border-radius: 12px; font-weight: 500; text-decoration: none; color: var(--text-muted);"><i
+                            class="fas fa-sliders-h"></i> Salon Settings</a></li>
+                <li style="margin-bottom: 0.5rem;"><a href="#" onclick="showTab('history')" class="nav-link"
+                        id="link-history"
+                        style="display: flex; gap: 1rem; padding: 1rem; border-radius: 12px; font-weight: 500; text-decoration: none; color: var(--text-muted);"><i
+                            class="fas fa-book"></i> Global History</a></li>
+            </ul>
+        </nav>
+        <div style="margin-top: auto; padding-top: 2rem; border-top: 1px solid #eee;">
+            <a href="/logout" style="color: var(--primary); text-decoration: none; font-weight: 600;"><i
+                    class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main
+        style="flex: 1; padding: 3rem; background: url('/static/images/dash-bg.png') no-repeat center center/cover fixed;">
+        <div class="admin-inner"
+            style="background: rgba(255,255,255,0.92); backdrop-filter: blur(15px); min-height: 100%; border-radius: 30px; padding: 3.5rem; box-shadow: 0 15px 45px rgba(0,0,0,0.08);">
+
+            <!-- ALERT FOR RECENT TRANSACTIONS -->
+            <div id="payment-alert"
+                style="display: none; background: #e6fffa; color: #047481; padding: 1.5rem; border-radius: 15px; margin-bottom: 3rem; border-left: 6px solid #2ecc71; animation: slideDown 0.5s ease;">
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <i class="fas fa-check-circle" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <strong style="display: block;">Transaction Completed Successful!</strong>
+                        <span id="alert-text">A balance settlement has been recorded in the system.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: STATS -->
+            <div id="tab-stats" class="admin-tab">
+                <header class="dash-header" style="margin-bottom: 3rem;">
+                    <h1
+                        style="font-size: 2.8rem; background: var(--vibrant-dual); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                        Business Intelligence</h1>
+                    <p style="font-size: 1.1rem; color: var(--text-muted);">Real-time salon metrics and growth tracking
+                    </p>
+                </header>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; margin-bottom: 4rem;">
+                    <div class="card" style="text-align: center; padding: 3rem 2rem; border: 1.5px solid #eee;">
+                        <i class="fas fa-users"
+                            style="font-size: 2rem; color: var(--primary); margin-bottom: 1.5rem;"></i>
+                        <h3 style="font-size: 3rem; font-weight: 800; margin-bottom: 0.5rem;">{{ users_count }}</h3>
+                        <p style="font-size: 1.1rem; color: var(--text-muted);">Customers</p>
+                    </div>
+                    <div class="card"
+                        style="text-align: center; padding: 3rem 2rem; border: 1.5px solid #eee; background: var(--light);">
+                        <i class="fas fa-wallet" style="font-size: 2rem; color: #2ecc71; margin-bottom: 1.5rem;"></i>
+                        <h3 style="font-size: 3rem; font-weight: 800; margin-bottom: 0.5rem;">₹{{ revenue }}</h3>
+                        <p style="font-size: 1.1rem; color: var(--text-muted);">Total Revenue</p>
+                    </div>
+                    <div class="card" style="text-align: center; padding: 3rem 2rem; border: 1.5px solid #eee;">
+                        <i class="fas fa-user-tie"
+                            style="font-size: 2rem; color: var(--dark); margin-bottom: 1.5rem;"></i>
+                        <h3 style="font-size: 3rem; font-weight: 800; margin-bottom: 0.5rem;">{{ staff|length }}</h3>
+                        <p style="font-size: 1.1rem; color: var(--text-muted);">Team Size</p>
+                    </div>
+                </div>
+
+                <div class="card"
+                    style="background: var(--vibrant-dual); color: #fff; padding: 4rem; border-radius: 25px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="max-width: 60%;">
+                        <h2 style="font-size: 2.2rem; margin-bottom: 1rem;">Infrastructure Management</h2>
+                        <p style="font-size: 1.1rem; opacity: 0.9; line-height: 1.6;">Maintain your global workforce and
+                            publish new services.</p>
+                    </div>
+                    <div style="display: flex; gap: 1.5rem;">
+                        <button class="btn-primary" onclick="openModal('staff')"
+                            style="background: #fff; color: var(--primary); border: none; padding: 1.2rem 2.5rem; font-size: 1rem; border-radius: 15px;">+
+                            Add Staff</button>
+                        <button class="btn-primary" onclick="openModal('service')"
+                            style="background: rgba(255,255,255,0.2); border: 2px solid #fff; padding: 1.2rem 2.5rem; font-size: 1rem; border-radius: 15px;">+
+                            New Service</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: REPORTS -->
+            <div id="tab-reports" class="admin-tab" style="display: none;">
+                <header class="dash-header" style="margin-bottom: 3rem;">
+                    <h1 style="font-size: 2.5rem;">Financial Sales Report</h1>
+                    <p style="font-size: 1.1rem;">Visualization of daily transactions and deposit volume</p>
+                </header>
+                <div class="card" style="padding: 3rem;">
+                    <h4 style="font-size: 1.4rem; margin-bottom: 2rem;">Daily Revenue Trends (₹)</h4>
+                    <div style="height: 500px; width: 100%;">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: BOOKINGS LOG -->
+            <div id="tab-bookings" class="admin-tab" style="display: none;">
+                <header class="dash-header"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem;">
+                    <h1 style="font-size: 2.5rem;">Operational Log</h1>
+                    <button onclick="window.print()" class="btn-primary"
+                        style="padding: 1rem 2rem; border-radius: 12px;"><i class="fas fa-print"></i> Export
+                        Log</button>
+                </header>
+                <div class="card" style="padding: 0; overflow: hidden; border: 1px solid #eee;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #fafafa; font-size: 0.9rem; text-transform: uppercase;">
+                            <tr>
+                                <th style="padding: 2rem; text-align: left;">Customer</th>
+                                <th style="padding: 2rem; text-align: left;">Service</th>
+                                <th style="padding: 2rem; text-align: left;">Financials</th>
+                                <th style="padding: 2rem; text-align: center;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in bookings %}
+                            <tr style="border-top: 1px solid #eee;">
+                                <td style="padding: 2rem;">
+                                    <strong style="font-size: 1.1rem;">{{ b.customer.name if b.customer else 'Client ID:
+                                        ' ~ b.user_id }}</strong>
+                                    <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.3rem;">{{
+                                        b.date }} at {{ b.time }}</div>
+                                </td>
+                                <td style="padding: 2rem;">{{ b.services.name if b.services else 'Unknown' }}</td>
+                                <td style="padding: 2rem;">
+                                    {% if b.balance_paid %}
+                                    <div style="font-weight: 800; color: #2ecc71;"><i class="fas fa-check-double"></i>
+                                        FULLY SETTLED</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Total: ₹{{
+                                        b.services.price }}</div>
+                                    {% else %}
+                                    <div style="font-weight: 700; color: #f39c12;">DEPOSIT ONLY</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Balance Pending: ₹{{
+                                        b.services.price - 50 if b.services else '?' }}</div>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 2rem; text-align: center;"><span class="status-{{ b.status }}"
+                                        style="padding: 0.5rem 1.2rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">{{
+                                        b.status }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB: HISTORY -->
+            <div id="tab-history" class="admin-tab" style="display: none;">
+                <h2 style="font-size: 2.5rem; margin-bottom: 3rem;">Global Audit History</h2>
+                <div class="card" style="padding: 0; overflow: hidden; border: 1px solid #eee;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #fafafa; font-size: 0.9rem; text-transform: uppercase;">
+                            <tr>
+                                <th style="padding: 2rem; text-align: left;">Customer</th>
+                                <th style="padding: 2rem; text-align: left;">Date</th>
+                                <th style="padding: 2rem; text-align: center;">Status</th>
+                                <th style="padding: 2rem; text-align: left;">Note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in bookings %}
+                            <tr style="border-top: 1px solid #eee;">
+                                <td style="padding: 2rem; font-weight: 600;">{{ b.customer.name if b.customer else
+                                    'User' }}</td>
+                                <td style="padding: 2rem;">{{ b.date }}</td>
+                                <td style="padding: 2rem; text-align: center;"><span class="status-{{ b.status }}"
+                                        style="padding: 0.5rem 1.2rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700;">{{
+                                        b.status|upper }}</span></td>
+                                <td style="padding: 2rem;">
+                                    {% if b.status == 'finished' %}
+                                    <span style="color: #2ecc71;"><i class="fas fa-certificate"></i> COMPLETED
+                                        MISSION</span>
+                                    {% else %}
+                                    {{ b.cancellation_reason or '-' }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<script id="bookings-data" type="application/json">
+    {{ bookings|tojson if bookings else '[]' }}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    window.onload = function () {
+        // Check if a payment was just completed (via URL param or sessionStorage)
+        const rawData = "{{ bookings|tojson if bookings else '[]' }}";
+        const finishedCount = rawData.filter(b => b.status === 'finished' && b.balance_paid).length;
+
+        // Simple logic: if a 'finished' booking exists, show a success toast for a few seconds
+        if (finishedCount > 0) {
+            const alertBox = document.getElementById('payment-alert');
+            alertBox.style.display = 'block';
+            setTimeout(() => { alertBox.style.opacity = '0'; setTimeout(() => alertBox.style.display = 'none', 500); }, 5000);
+        }
+    }
+
+    window.showTab = function (t) {
+        document.querySelectorAll('.admin-tab').forEach(tab => tab.style.display = 'none');
+        const target = document.getElementById('tab-' + t);
+        if (target) target.style.display = 'block';
+        document.querySelectorAll('.nav-link').forEach(l => {
+            l.style.color = 'var(--text-muted)';
+            l.style.background = 'transparent';
+            l.classList.remove('active');
+        });
+        const activeLink = document.getElementById('link-' + t);
+        if (activeLink) {
+            activeLink.style.color = 'var(--dark)';
+            activeLink.classList.add('active');
+        }
+        if (t === 'reports') initChart();
+    }
+
+    let chartInstance = null;
+    function initChart() {
+        if (chartInstance) return;
+        const canvas = document.getElementById('revenueChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        try {
+            const rawJson = document.getElementById('bookings-data').textContent;
+            const rawBookings = JSON.parse(rawJson);
+            const dataPoints = rawBookings.filter(b => ['pending', 'approved', 'finished'].includes(b.status)).map(b => ({
+                date: b.date,
+                amount: b.status === 'finished' ? (b.services ? b.services.price : 50) : 50
+            }));
+            if (dataPoints.length === 0) return;
+            const labels = [...new Set(dataPoints.map(d => d.date))].sort();
+            const values = labels.map(l => dataPoints.filter(d => d.date === l).reduce((acc, curr) => acc + curr.amount, 0));
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Daily Cash Flow (₹)',
+                        data: values,
+                        borderColor: '#ff6f61',
+                        backgroundColor: 'rgba(255, 111, 97, 0.1)',
+                        borderWidth: 4,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        } catch (e) { console.error("Chart Error:", e); }
+    }
+</script>
+
+<style>
+    @keyframes slideDown {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-approved {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .status-finished {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-cancelled {
+        background: #f8d7da;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
