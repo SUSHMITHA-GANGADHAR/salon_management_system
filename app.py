@@ -4,6 +4,13 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import bcrypt
+import sys, subprocess
+try:
+    import pkg_resources
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "setuptools"])
+    import pkg_resources
+
 import os
 import time
 from datetime import datetime, date
