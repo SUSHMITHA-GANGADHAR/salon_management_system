@@ -1,20 +1,15 @@
-import sys, subprocess
-try:
-    import pkg_resources
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "setuptools"])
-    import pkg_resources
-
-import razorpay
+import os
+import time
+import hmac
+import hashlib
+import requests
+from datetime import datetime, date
+from functools import wraps
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import bcrypt
-import os
-import time
-from datetime import datetime, date
-from functools import wraps
 
 # Load environment variables
 load_dotenv()
@@ -26,10 +21,18 @@ CORS(app)
 # Razorpay Configuration
 RAZOR_KEY_ID = os.getenv('RAZOR_KEY_ID')
 RAZOR_KEY_SECRET = os.getenv('RAZOR_KEY_SECRET')
-if RAZOR_KEY_ID and RAZOR_KEY_SECRET:
-    razorpay_client = razorpay.Client(auth=(RAZOR_KEY_ID, RAZOR_KEY_SECRET))
-else:
-    razorpay_client = None
+
+def verify_razorpay_signature(params):
+    try:
+        msg = f"{params['razorpay_order_id']}|{params['razorpay_payment_id']}"
+        generated = hmac.new(
+            RAZOR_KEY_SECRET.encode(),
+            msg.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        return generated == params['razorpay_signature']
+    except:
+        return False
 
 # Supabase Configuration
 SUPABASE_URL = os.getenv('SUPABASE_URL')
@@ -158,7 +161,12 @@ def create_order():
     # Fixed deposit amount: ₹50
     amount = 50 * 100 # In paise
     try:
-        order = razorpay_client.order.create(data={'amount': amount, 'currency': 'INR', 'payment_capture': 1})
+        res = requests.post(
+            'https://api.razorpay.com/v1/orders',
+            auth=(RAZOR_KEY_ID, RAZOR_KEY_SECRET),
+            json={'amount': amount, 'currency': 'INR', 'payment_capture': 1}
+        )
+        order = res.json()
         return jsonify({'success': True, 'order_id': order['id'], 'amount': amount})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -294,11 +302,12 @@ def create_balance_order():
         if balance_amount <= 0:
             return jsonify({'success': False, 'message': 'No balance due.'})
 
-        order = razorpay_client.order.create({
-            'amount': int(balance_amount),
-            'currency': 'INR',
-            'payment_capture': '1'
-        })
+        res = requests.post(
+            'https://api.razorpay.com/v1/orders',
+            auth=(RAZOR_KEY_ID, RAZOR_KEY_SECRET),
+            json={'amount': int(balance_amount), 'currency': 'INR', 'payment_capture': 1}
+        )
+        order = res.json()
         return jsonify({'success': True, 'order_id': order['id'], 'amount': balance_amount})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -325,7 +334,8 @@ def verify_payment():
             'razorpay_payment_id': data.get('razorpay_payment_id'),
             'razorpay_signature': data.get('razorpay_signature')
         }
-        razorpay_client.utility.verify_payment_signature(params_dict)
+        if not verify_razorpay_signature(params_dict):
+            raise Exception("Invalid Signature")
 
         supabase.table('appointments').insert({
             'user_id': session['user_id'],
