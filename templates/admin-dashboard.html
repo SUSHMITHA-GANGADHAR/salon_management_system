@@ -188,16 +188,12 @@
                         <tbody>
                             {% for b in bookings %}
                             <tr style="border-top: 1px solid #eee;">
-                                <td style="padding: 2rem; font-weight: 600;">{{ b.customer.name if b.customer else
-                                    'User' }}</td>
+                                <td style="padding: 2rem; font-weight: 600;">{{ b.customer.name if b.customer else 'User' }}</td>
                                 <td style="padding: 2rem;">{{ b.date }}</td>
-                                <td style="padding: 2rem; text-align: center;"><span class="status-{{ b.status }}"
-                                        style="padding: 0.5rem 1.2rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700;">{{
-                                        b.status|upper }}</span></td>
+                                <td style="padding: 2rem; text-align: center;"><span class="status-{{ b.status }}" style="padding: 0.5rem 1.2rem; border-radius: 50px; font-size: 0.75rem; font-weight: 700;">{{ b.status|upper }}</span></td>
                                 <td style="padding: 2rem;">
                                     {% if b.status == 'finished' %}
-                                    <span style="color: #2ecc71;"><i class="fas fa-certificate"></i> COMPLETED
-                                        MISSION</span>
+                                    <span style="color: #2ecc71;"><i class="fas fa-certificate"></i> COMPLETED MISSION</span>
                                     {% else %}
                                     {{ b.cancellation_reason or '-' }}
                                     {% endif %}
@@ -206,6 +202,26 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- TAB: SETTINGS -->
+            <div id="tab-settings" class="admin-tab" style="display: none;">
+                <h2 style="font-size: 2.5rem; margin-bottom: 3rem;">Salon Configuration</h2>
+                <div class="grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem;">
+                    <div class="card" style="padding: 2.5rem;">
+                        <h3 style="margin-bottom: 1.5rem;">Business Identity</h3>
+                        <div style="margin-bottom: 1rem;">
+                            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">SALON NAME</label>
+                            <input type="text" value="Salon Pro Luxury" style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 1.5px solid #eee; margin-top: 0.5rem;">
+                        </div>
+                        <button class="btn-primary" style="width: 100%; margin-top: 1rem;">Update Profile</button>
+                    </div>
+                    <div class="card" style="padding: 2.5rem;">
+                        <h3 style="margin-bottom: 1.5rem;">Operational Hours</h3>
+                        <p style="color: var(--text-muted); font-size: 0.9rem;">Currently set to: 09:00 AM - 08:00 PM</p>
+                        <button class="btn-primary" style="width: 100%; margin-top: 1.5rem; background: #fff; color: var(--primary); border: 1.5px solid var(--primary);">Change Slots</button>
+                    </div>
                 </div>
             </div>
 
@@ -220,15 +236,17 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     window.onload = function () {
-        // Check if a payment was just completed (via URL param or sessionStorage)
-        const rawData = "{{ bookings|tojson if bookings else '[]' }}";
-        const finishedCount = rawData.filter(b => b.status === 'finished' && b.balance_paid).length;
+        // Check if a payment was just completed
+        const rawJsonArr = document.getElementById('bookings-data').textContent;
+        const bookingsArr = JSON.parse(rawJsonArr || '[]');
+        const finishedCount = bookingsArr.filter(b => b.status === 'finished' && b.balance_paid).length;
 
-        // Simple logic: if a 'finished' booking exists, show a success toast for a few seconds
         if (finishedCount > 0) {
             const alertBox = document.getElementById('payment-alert');
-            alertBox.style.display = 'block';
-            setTimeout(() => { alertBox.style.opacity = '0'; setTimeout(() => alertBox.style.display = 'none', 500); }, 5000);
+            if(alertBox) {
+                alertBox.style.display = 'block';
+                setTimeout(() => { alertBox.style.opacity = '0'; setTimeout(() => alertBox.style.display = 'none', 500); }, 5000);
+            }
         }
     }
 
