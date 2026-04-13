@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: salon-pro-system
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: FLASK_APP
+        value: app.py
+      - key: SUPABASE_URL
+        fromConfig: true
+      - key: SUPABASE_KEY
+        fromConfig: true
+      - key: RAZOR_KEY_ID
+        fromConfig: true
+      - key: RAZOR_KEY_SECRET
+        fromConfig: true
