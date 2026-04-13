@@ -569,88 +569,90 @@ h1, h2, h3, .logo { font-family: 'Playfair Display', serif; }
     border-color: var(--primary);
 }
 
-/* DYNAMIC GENDER THEMING - PREMIUM MALE LIGHT MODE (MAX READABILITY) */
-.gender-male {
+/* DYNAMIC GENDER THEMING - STANDARDIZED PREMIUM LIGHT STYLE */
+.gender-male, .gender-female {
     background: url('/static/images/dash-bg.png') no-repeat center center/cover fixed !important;
-    color: var(--text-main);
-    position: relative;
     min-height: 100vh;
 }
 
-.gender-male::before {
+.gender-male::before, .gender-female::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.85) !important; /* Light white overlay */
-    backdrop-filter: blur(15px);
+    background: rgba(255, 255, 255, 0.75) !important;
+    backdrop-filter: blur(10px);
     z-index: -1;
 }
 
-.gender-male .dashboard-inner, 
-.gender-male .dashboard-layout,
-.gender-male main,
-.gender-male .booking-container {
-    background: transparent !important;
-    box-shadow: none !important;
+/* Standard Inner Glass Container */
+.dashboard-inner, .admin-inner {
+    background: rgba(255, 255, 255, 0.92) !important;
+    backdrop-filter: blur(15px) !important;
+    border-radius: 30px !important;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.05) !important;
 }
 
-.gender-male aside {
-    background: rgba(255, 255, 255, 0.9) !important;
-    border-right: 1px solid #eee !important;
+.card {
+    background: #fff !important;
+    border: 1px solid #eee !important;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.02) !important;
+    color: var(--text-main) !important;
 }
 
-.gender-male aside h2, 
-.gender-male aside .nav-link,
-.gender-male aside .nav-link i {
+.gender-male h1, .gender-female h1, .gender-male h2, .gender-female h2 {
+    color: var(--dark) !important;
+    font-family: 'Playfair Display', serif;
+}
+
+.gender-male p, .gender-female p {
     color: var(--text-muted) !important;
 }
 
-.gender-male h1, .gender-male h2, .gender-male h3, .gender-male h4 {
+/* Sidebar consistency */
+aside {
+    background: #fff !important;
+    border-right: 1px solid #eee !important;
+}
+
+aside .nav-link {
+    color: var(--text-muted) !important;
+    transition: all 0.3s ease;
+}
+
+aside .nav-link.active {
+    background: #fcfcfc !important;
+    color: var(--primary) !important;
+    font-weight: 700 !important;
+}
+
+/* Booking & Table consistency */
+table thead {
+    background: #fafafa !important;
+    color: var(--text-muted) !important;
+}
+
+table tr {
+    border-bottom: 1px solid #f0f0f0 !important;
+}
+
+.btn-primary {
+    background: var(--vibrant-dual) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(255, 111, 97, 0.2) !important;
+}
+
+/* Form fields readability */
+input, select, textarea {
+    background: #fff !important;
+    border: 1.5px solid #eee !important;
     color: var(--dark) !important;
 }
 
-.gender-male p, .gender-male span, .gender-male label, .gender-male li {
-    color: var(--text-main) !important;
+input:focus, select:focus {
+    border-color: var(--primary) !important;
+    outline: none;
 }
-
-.gender-male .card, 
-.gender-male .booking-card,
-.gender-male .auth-card {
-    background: rgba(255, 255, 255, 0.95) !important; /* Solid light background for cards */
-    border: 1px solid rgba(0, 0, 0, 0.05) !important;
-    border-radius: 24px !important;
-    color: var(--text-main) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
-}
-
-/* Specific fix for the advance amount being unreadable */
-.gender-male strong[style*="font-size: 2rem"] {
-    color: var(--primary) !important; /* Make the deposit amount stand out */
-}
-
-.gender-male .btn-primary {
-    background: var(--vibrant-dual) !important;
-    color: #ffffff !important;
-    border: none !important;
-}
-
-.gender-male input, 
-.gender-male select, 
-.gender-male textarea {
-    background: #ffffff !important;
-    border: 1.5px solid #eee !important;
-    color: var(--text-main) !important;
-}
-
-.gender-male .assigned-to-me {
-    border-left: 5px solid var(--primary) !important;
-    background: rgba(255, 111, 97, 0.05) !important;
-}
-
-/* Status colors in light mode */
-.gender-male .status-pending { background: #fff3cd !important; color: #856404 !important; }
-.gender-male .status-approved { background: #d1ecf1 !important; color: #0c5460 !important; }
-.gender-male .status-finished { background: #d4edda !important; color: #155724 !important; }
 
 
 .card .btn-primary, .card button {

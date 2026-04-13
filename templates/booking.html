@@ -2,8 +2,24 @@
 {% block title %}Book Appointment | Salon Pro{% endblock %}
 
 {% block content %}
-<div class="dashboard-container gender-{{ session.gender }}">
-    <div class="booking-container" data-aos="fade-up" style="max-width: 800px; margin: 0 auto; padding: 4rem 2rem;">
+<div class="dashboard-layout gender-{{ session.gender }}" style="display: flex; min-height: 100vh; background: #f8f9fa;">
+    <!-- SIDEBAR -->
+    <aside style="width: 280px; background: #fff; border-right: 1px solid #eee; padding: 2rem; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column;">
+        <div style="margin-bottom: 3rem; text-align: center;">
+            <i class="fas fa-calendar-plus" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem;"></i>
+            <h2 style="font-family: 'Playfair Display', serif;">Reservations</h2>
+        </div>
+        <nav style="flex: 1;">
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin-bottom: 0.5rem;"><a href="/dashboard" class="nav-link" style="display: flex; gap: 1rem; padding: 1rem; border-radius: 12px; font-weight: 500; text-decoration: none; color: var(--text-muted);"><i class="fas fa-arrow-left"></i> BACK TO PORTAL</a></li>
+                <li style="margin-bottom: 0.5rem;"><a href="#" class="nav-link active" style="display: flex; gap: 1rem; padding: 1rem; border-radius: 12px; font-weight: 500; text-decoration: none; color: var(--primary); background: #fcfcfc;"><i class="fas fa-magic"></i> SECURE SLOT</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- CONTENT -->
+    <main style="flex: 1; padding: 3rem; background: url('/static/images/dash-bg.png') no-repeat center center/cover fixed;">
+        <div class="dashboard-inner" style="background: rgba(255,255,255,0.92); backdrop-filter: blur(15px); min-height: 100%; border-radius: 30px; padding: 3.5rem; box-shadow: 0 15px 30px rgba(0,0,0,0.05);">
         <h1 style="text-align: center; background: var(--vibrant-dual); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">Secure Your Slot</h1>
         <p style="text-align: center; color: var(--text-muted); margin-bottom: 3rem;">A fixed advance of ₹50.00 is required to freeze your appointment.</p>
 
@@ -54,8 +70,9 @@
             </div>
 
             <button id="payBtn" class="btn-primary" style="width: 100%; margin-top: 2rem; padding: 1.2rem; border-radius: 15px; font-weight: 700;">Pay ₹50 & Book Slot</button>
+            </div>
         </div>
-    </div>
+    </main>
 </div>
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
