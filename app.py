@@ -14,6 +14,32 @@ import bcrypt
 # Load environment variables
 load_dotenv()
 
+# Define get_db at the very top level
+_supabase_client = None
+
+def get_db():
+    global _supabase_client
+    if _supabase_client is not None:
+        return _supabase_client
+    
+    url = os.environ.get('SUPABASE_URL')
+    key = os.environ.get('SUPABASE_KEY')
+    
+    if not url or not key:
+        url = os.getenv('SUPABASE_URL')
+        key = os.getenv('SUPABASE_KEY')
+        
+    if not url or not key:
+        print("CRITICAL ERROR: Supabase credentials missing!")
+        return None
+        
+    try:
+        _supabase_client = create_client(url, key)
+        return _supabase_client
+    except Exception as e:
+        print(f"FAILED TO CONNECT TO SUPABASE: {e}")
+        return None
+
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')
 CORS(app)
@@ -33,33 +59,6 @@ def verify_razorpay_signature(params):
         return generated == params['razorpay_signature']
     except:
         return False
-
-# Supabase Configuration
-_supabase_client = None
-
-def get_db():
-    global _supabase_client
-    if _supabase_client is not None:
-        return _supabase_client
-    
-    url = os.environ.get('SUPABASE_URL')
-    key = os.environ.get('SUPABASE_KEY')
-    
-    if not url or not key:
-        # Fallback to local .env via os.getenv if os.environ fails
-        url = os.getenv('SUPABASE_URL')
-        key = os.getenv('SUPABASE_KEY')
-        
-    if not url or not key:
-        print("CRITICAL ERROR: Supabase credentials missing from environment.")
-        return None
-        
-    try:
-        _supabase_client = create_client(url, key)
-        return _supabase_client
-    except Exception as e:
-        print(f"FAILED TO CONNECT TO SUPABASE: {e}")
-        return None
 
 # ===== DB RETRY HELPER =====
 def get_salon_settings():
@@ -124,7 +123,7 @@ def register():
         
         try:
             db = get_db()
-            if not db: return jsonify({'success': False, 'message': 'Database not connected.'}), 500
+            if not db: return jsonify({'success': False, 'message': 'Database connection error.'}), 500
             hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             db.table('users').insert({
                 'name': name,
@@ -183,7 +182,7 @@ def cancel_booking():
     reason = data.get('reason', 'No reason provided')
     try:
         db = get_db()
-        if not db: return jsonify({'success': False, 'message': 'DB Error'}), 500
+        if not db: return jsonify({'success': False, 'message': 'Database connection error.'}), 500
         db.table('appointments').update({
             'status': 'cancelled',
             'cancellation_reason': reason
@@ -202,7 +201,7 @@ def dashboard():
     
     try:
         db = get_db()
-        if not db: return "Database Error", 500
+        if not db: return "Database connection error.", 500
         res = db.table('appointments').select('*, services(*)').eq('user_id', user['id']).order('date').execute()
         bookings = res.data
         today_dt = date.today()
@@ -221,7 +220,7 @@ def booking_page():
     gender = session.get('gender') or 'male'
     try:
         db = get_db()
-        if not db: return "DB Error", 500
+        if not db: return "Database connection error.", 500
         res = db.table('services').select('*').eq('gender', gender).execute()
         services = res.data
     except:
@@ -234,7 +233,7 @@ def staff_dashboard():
     if not user or session.get('role') != 'staff': return redirect('/login')
     try:
         db = get_db()
-        if not db: return "DB Error", 500
+        if not db: return "Database connection error.", 500
         res = db.table('appointments').select('*, customer:user_id(name), services(name, price), specialist:staff_id(name)').neq('status', 'cancelled').order('date').execute()
         bookings = res.data
     except Exception as e:
@@ -248,7 +247,7 @@ def admin_dashboard():
     if not user or session.get('role') != 'admin': return redirect('/login')
     try:
         db = get_db()
-        if not db: return "DB Error", 500
+        if not db: return "Database connection error.", 500
         results = db.table('appointments').select('*, customer:user_id(name, email), services(*)').order('date').execute()
         all_bookings = results.data
         customers = db.table('users').select('id', count='exact').eq('role', 'customer').execute()
