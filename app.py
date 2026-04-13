@@ -35,23 +35,38 @@ def verify_razorpay_signature(params):
         return False
 
 # Supabase Configuration
-SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+_supabase_client = None
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("WARNING: SUPABASE_URL or SUPABASE_KEY not found. Supabase is disabled.")
-    supabase = None
-else:
+def get_db():
+    global _supabase_client
+    if _supabase_client is not None:
+        return _supabase_client
+    
+    url = os.environ.get('SUPABASE_URL')
+    key = os.environ.get('SUPABASE_KEY')
+    
+    if not url or not key:
+        # Fallback to local .env via os.getenv if os.environ fails
+        url = os.getenv('SUPABASE_URL')
+        key = os.getenv('SUPABASE_KEY')
+        
+    if not url or not key:
+        print("CRITICAL ERROR: Supabase credentials missing from environment.")
+        return None
+        
     try:
-        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        _supabase_client = create_client(url, key)
+        return _supabase_client
     except Exception as e:
-        print(f"Supabase connection failed: {e}")
-        supabase = None
+        print(f"FAILED TO CONNECT TO SUPABASE: {e}")
+        return None
 
 # ===== DB RETRY HELPER =====
 def get_salon_settings():
     try:
-        res = supabase.table('salon_settings').select('*').eq('id', 1).single().execute()
+        db = get_db()
+        if not db: return {'name': 'Salon Pro', 'address': '123 Luxury Lane'}
+        res = db.table('salon_settings').select('*').eq('id', 1).single().execute()
         return res.data
     except:
         return {'name': 'Salon Pro', 'address': '123 Luxury Lane'}
@@ -72,20 +87,17 @@ def db_retry(max_retries=3, delay=1):
         return wrapper
     return decorator
 
-# ===== AUTH HELPER FUNCTIONS =====
-
-def hash_password(password):
-    salt = bcrypt.gensalt(rounds=10)
-    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
-
+# Authentication helper
 def is_logged_in():
     return 'user_id' in session
 
 def get_current_user():
-    if not is_logged_in() or not supabase: return None
+    if not is_logged_in(): return None
+    db = get_db()
+    if not db: return None
     try:
         user_id = session.get('user_id')
-        response = supabase.table('users').select('*').eq('id', user_id).execute()
+        response = db.table('users').select('*').eq('id', user_id).execute()
         return response.data[0] if response.data else None
     except Exception as e:
         print(f"Error fetching user: {e}")
@@ -111,8 +123,10 @@ def register():
             return jsonify({'success': False, 'message': 'Registration forms must be complete.'}), 400
         
         try:
-            hashed = hash_password(password)
-            supabase.table('users').insert({
+            db = get_db()
+            if not db: return jsonify({'success': False, 'message': 'Database not connected.'}), 500
+            hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            db.table('users').insert({
                 'name': name,
                 'email': email,
                 'password': hashed,
@@ -132,7 +146,9 @@ def login():
         password = data.get('password', '')
         
         try:
-            response = supabase.table('users').select('*').eq('email', email).execute()
+            db = get_db()
+            if not db: return jsonify({'success': False, 'message': 'Database connection error.'}), 500
+            response = db.table('users').select('*').eq('email', email).execute()
             if not response.data:
                 return jsonify({'success': False, 'message': 'Account not found'}), 401
             
@@ -142,23 +158,140 @@ def login():
             
             session['user_id'] = user['id']
             session['role'] = user['role']
-            session['gender'] = user.get('gender') or 'male'
+            session['name'] = user['name']
+            session['gender'] = user['gender']
             
-            print(f"USER LOGGED IN: ID={user['id']}, ROLE={user['role']}, GENDER={session['gender']}")
+            redirect_url = '/dashboard'
+            if user['role'] == 'admin': redirect_url = '/admin-dashboard'
+            elif user['role'] == 'staff': redirect_url = '/staff-dashboard'
             
-            target = '/dashboard'
-            if user['role'] == 'admin': target = '/admin-dashboard'
-            elif user['role'] == 'staff': target = '/staff-dashboard'
-            
-            return jsonify({'success': True, 'redirect': target})
+            return jsonify({'success': True, 'redirect': redirect_url})
         except Exception as e:
             return jsonify({'success': False, 'message': str(e)}), 500
     return render_template('login.html')
 
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/')
+
+@app.route('/api/booking/cancel', methods=['POST'])
+def cancel_booking():
+    if not is_logged_in(): return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    data = request.json
+    bid = data.get('booking_id')
+    reason = data.get('reason', 'No reason provided')
+    try:
+        db = get_db()
+        if not db: return jsonify({'success': False, 'message': 'DB Error'}), 500
+        db.table('appointments').update({
+            'status': 'cancelled',
+            'cancellation_reason': reason
+        }).eq('id', bid).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/dashboard')
+def dashboard():
+    user = get_current_user()
+    if not user: return redirect('/login')
+    role = session.get('role')
+    if role != 'customer':
+        return redirect('/admin-dashboard' if role == 'admin' else '/staff-dashboard')
+    
+    try:
+        db = get_db()
+        if not db: return "Database Error", 500
+        res = db.table('appointments').select('*, services(*)').eq('user_id', user['id']).order('date').execute()
+        bookings = res.data
+        today_dt = date.today()
+        for b in bookings:
+            b_date = datetime.strptime(b['date'], '%Y-%m-%d').date()
+            b['can_cancel'] = b_date > today_dt and b['status'] != 'cancelled'
+    except Exception as e:
+        print(f"Dashboard Error: {e}")
+        bookings = []
+        
+    return render_template('dashboard.html', user=user, bookings=bookings)
+
+@app.route('/booking')
+def booking_page():
+    if not is_logged_in(): return redirect('/login')
+    gender = session.get('gender') or 'male'
+    try:
+        db = get_db()
+        if not db: return "DB Error", 500
+        res = db.table('services').select('*').eq('gender', gender).execute()
+        services = res.data
+    except:
+        services = []
+    return render_template('booking.html', services=services)
+
+@app.route('/staff-dashboard')
+def staff_dashboard():
+    user = get_current_user()
+    if not user or session.get('role') != 'staff': return redirect('/login')
+    try:
+        db = get_db()
+        if not db: return "DB Error", 500
+        res = db.table('appointments').select('*, customer:user_id(name), services(name, price), specialist:staff_id(name)').neq('status', 'cancelled').order('date').execute()
+        bookings = res.data
+    except Exception as e:
+        print(f"Staff Dashboard Error: {e}")
+        bookings = []
+    return render_template('staff-dashboard.html', user=user, bookings=bookings)
+
+@app.route('/admin-dashboard')
+def admin_dashboard():
+    user = get_current_user()
+    if not user or session.get('role') != 'admin': return redirect('/login')
+    try:
+        db = get_db()
+        if not db: return "DB Error", 500
+        results = db.table('appointments').select('*, customer:user_id(name, email), services(*)').order('date').execute()
+        all_bookings = results.data
+        customers = db.table('users').select('id', count='exact').eq('role', 'customer').execute()
+        staff = db.table('users').select('*').eq('role', 'staff').execute()
+        
+        revenue = 0
+        for b in all_bookings:
+            if b['status'] != 'cancelled':
+                revenue += 50
+                if b.get('balance_paid'):
+                    price = b['services']['price'] if b.get('services') else 50
+                    revenue += (price - 50)
+                    
+        return render_template('admin-dashboard.html', 
+                             user=user, 
+                             bookings=all_bookings, 
+                             users_count=len(customers.data) if customers.data else 0,
+                             revenue=revenue,
+                             staff=staff.data if staff.data else [])
+    except Exception as e:
+        print(f"Admin Dashboard Error: {e}")
+        return render_template('admin-dashboard.html', user=user, bookings=[], users_count=0, revenue=0, staff=[])
+
+@app.route('/api/booking/collect-balance', methods=['POST'])
+def collect_balance():
+    if not is_logged_in() or session.get('role') not in ['admin', 'staff']:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    data = request.json
+    booking_id = data.get('id')
+    try:
+        db = get_db()
+        if not db: return jsonify({'success': False}), 500
+        db.table('appointments').update({
+            'balance_paid': True,
+            'status': 'finished'
+        }).eq('id', booking_id).execute()
+        return jsonify({'success': True, 'message': 'Balance collected!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/api/payment/create-order', methods=['POST'])
 def create_order():
-    if not is_logged_in(): return jsonify({'success': False}), 401
-    # Fixed deposit amount: ₹50
+    if not is_logged_in(): return jsonify({'success': False}), 403
     amount = 50 * 100 # In paise
     try:
         res = requests.post(
@@ -171,163 +304,9 @@ def create_order():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/api/booking/cancel', methods=['POST'])
-def cancel_booking():
-    if not is_logged_in(): return jsonify({'success': False}), 401
-    data = request.get_json()
-    bid = data.get('booking_id')
-    reason = data.get('reason', 'No reason provided')
-    try:
-        supabase.table('appointments').update({
-            'status': 'cancelled',
-            'cancellation_reason': reason
-        }).eq('id', bid).execute()
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/dashboard')
-def dashboard():
-    if not is_logged_in(): return redirect('/login')
-    user = get_current_user()
-    role = session.get('role', 'customer')
-    if role != 'customer':
-        return redirect('/admin-dashboard' if role == 'admin' else '/staff-dashboard')
-    
-    try:
-        res = supabase.table('appointments').select('*, services(*)').eq('user_id', user['id']).order('date').execute()
-        bookings = res.data
-        today_dt = date.today()
-        for b in bookings:
-            b_date = datetime.strptime(b['date'], '%Y-%m-%d').date()
-            diff = (b_date - today_dt).days
-            b['days_left'] = diff if diff >= 0 else -1
-    except:
-        bookings = []
-        
-    return render_template('dashboard.html', user=user, bookings=bookings, RAZOR_KEY_ID=RAZOR_KEY_ID)
-
-@app.route('/booking')
-def booking():
-    if not is_logged_in(): return redirect('/login')
-    gender = session.get('gender') or 'male'
-    print(f"FETCHING SERVICES FOR GENDER: {gender}")
-    try:
-        res = supabase.table('services').select('*').eq('gender', gender).execute()
-        services = res.data
-    except:
-        services = []
-    
-    today = date.today().strftime('%Y-%m-%d')
-    return render_template('booking.html', services=services, RAZOR_KEY_ID=RAZOR_KEY_ID, today=today)
-
-@app.route('/staff-dashboard')
-def staff_dashboard():
-    if not is_logged_in() or session.get('role') != 'staff': return redirect('/login')
-    user = get_current_user()
-    try:
-        # Fetch all bookings that are not cancelled or finished to show on active duty
-        res = supabase.table('appointments').select('*, customer:user_id(name), services(name, price), specialist:staff_id(name)').neq('status', 'cancelled').order('date').execute()
-        bookings = res.data
-    except Exception as e:
-        print(f"Staff Dashboard Error: {e}")
-        bookings = []
-    return render_template('staff-dashboard.html', user=user, bookings=bookings)
-
-@app.route('/admin-dashboard')
-def admin_dashboard():
-    if not is_logged_in() or session.get('role') != 'admin': return redirect('/login')
-    user = get_current_user()
-    try:
-        # Fetch all bookings for analytics with explicit customer mapping
-        results = supabase.table('appointments').select('*, customer:user_id(name, email), services(*)').order('date').execute()
-        all_bookings = results.data
-        
-        customers = supabase.table('users').select('id', count='exact').eq('role', 'customer').execute()
-        staff = supabase.table('users').select('*').eq('role', 'staff').execute()
-        
-        # Calculate revenue: 
-        # 1. Start with initial deposits (₹50) from all paid bookings
-        # 2. Add full price for 'finished' bookings where balance is settled
-        total_revenue = 0
-        for b in all_bookings:
-            if b.get('is_paid'):
-                if b.get('status') == 'finished' and b.get('services'):
-                    total_revenue += b['services']['price']
-                else:
-                    total_revenue += 50 # Valid deposit even if not finished
-        
-        return render_template('admin-dashboard.html', 
-                             user=user, 
-                             bookings=all_bookings, 
-                             users_count=customers.count or 0, 
-                             revenue=total_revenue, 
-                             staff=staff.data or [])
-    except Exception as e:
-        print(f"Admin Dashboard Error: {e}")
-        return render_template('admin-dashboard.html', user=user, bookings=[], users_count=0, revenue=0, staff=[])
-
-@app.route('/api/booking/collect-balance', methods=['POST'])
-def collect_balance():
-    if not is_logged_in() or session.get('role') not in ['admin', 'staff']:
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
-    
-    data = request.json
-    booking_id = data.get('id')
-    
-    try:
-        supabase.table('appointments').update({
-            'balance_paid': True,
-            'status': 'finished'
-        }).eq('id', booking_id).execute()
-        return jsonify({'success': True, 'message': 'Balance collected! Service marked as complete.'})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/api/booking/create-balance-order', methods=['POST'])
-def create_balance_order():
-    if not is_logged_in(): return jsonify({'success': False, 'message': 'Auth required'}), 401
-    
-    data = request.json
-    booking_id = data.get('id')
-    
-    try:
-        booking = supabase.table('appointments').select('*, services(*)').eq('id', booking_id).single().execute().data
-        if not booking: return jsonify({'success': False, 'message': 'Booking not found'}), 404
-        
-        # Calculate remaining balance: Total - 50 deposit
-        total_price = booking['services']['price']
-        balance_amount = (total_price - 50) * 100 # Convert to paise
-        
-        if balance_amount <= 0:
-            return jsonify({'success': False, 'message': 'No balance due.'})
-
-        res = requests.post(
-            'https://api.razorpay.com/v1/orders',
-            auth=(RAZOR_KEY_ID, RAZOR_KEY_SECRET),
-            json={'amount': int(balance_amount), 'currency': 'INR', 'payment_capture': 1}
-        )
-        order = res.json()
-        return jsonify({'success': True, 'order_id': order['id'], 'amount': balance_amount})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/api/booking/verify-balance-payment', methods=['POST'])
-def verify_balance_payment():
-    data = request.json
-    try:
-        # Update the booking in DB
-        supabase.table('appointments').update({
-            'balance_paid': True,
-            'status': 'finished' # Mark as finished once balance is paid online
-        }).eq('id', data.get('booking_id')).execute()
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-@app.route('/api/booking/verify-payment', methods=['POST'])
+@app.route('/api/payment/verify', methods=['POST'])
 def verify_payment():
-    data = request.get_json()
+    data = request.json
     try:
         params_dict = {
             'razorpay_order_id': data.get('razorpay_order_id'),
@@ -337,93 +316,92 @@ def verify_payment():
         if not verify_razorpay_signature(params_dict):
             raise Exception("Invalid Signature")
 
-        supabase.table('appointments').insert({
+        db = get_db()
+        if not db: return jsonify({'success': False}), 500
+        db.table('appointments').insert({
             'user_id': session['user_id'],
             'service_id': data.get('service_id'),
             'date': data.get('date'),
             'time': data.get('time'),
-            'staff_id': data.get('staff_id'),
             'status': 'pending',
             'payment_id': data.get('razorpay_payment_id'),
-            'order_id': data.get('razorpay_order_id'),
-            'is_paid': True,
-            'payment_amount': 50.00
+            'payment_amount': 50,
+            'balance_paid': False
         }).execute()
         return jsonify({'success': True})
     except Exception as e:
-        if 'staff_time_unique' in str(e):
-            return jsonify({'success': False, 'message': 'Slot taken. Choose another specialist.'}), 409
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/booking/update-status', methods=['POST'])
-def update_booking_status():
+def update_status():
     if not is_logged_in() or session.get('role') not in ['admin', 'staff']:
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
-    
+        return jsonify({'success': False}), 403
     data = request.json
     booking_id = data.get('id')
     new_status = data.get('status')
-    
     try:
-        supabase.table('appointments').update({'status': new_status}).eq('id', booking_id).execute()
-        return jsonify({'success': True, 'message': f'Status updated to {new_status}'})
+        db = get_db()
+        if not db: return jsonify({'success': False}), 500
+        db.table('appointments').update({'status': new_status}).eq('id', booking_id).execute()
+        return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/booking/reschedule', methods=['POST'])
 def reschedule_booking():
     if not is_logged_in() or session.get('role') not in ['admin', 'staff']:
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
-    
+        return jsonify({'success': False}), 403
     data = request.json
     booking_id = data.get('id')
     new_date = data.get('date')
     new_time = data.get('time')
-    
     try:
-        # Check if rescheduling is within 1 hour limit (optional server-side check)
-        # For simplicity, we just update the DB as per staff request
-        supabase.table('appointments').update({
+        db = get_db()
+        if not db: return jsonify({'success': False}), 500
+        db.table('appointments').update({
             'date': new_date,
             'time': new_time,
-            'status': 'pending'  # Reset to pending for re-approval
+            'status': 'pending'
         }).eq('id', booking_id).execute()
-        return jsonify({'success': True, 'message': 'Slot rescheduled and reset to pending.'})
+        return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/admin/add-staff', methods=['POST'])
 def add_staff():
     if not is_logged_in() or session.get('role') != 'admin':
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+        return jsonify({'success': False}), 403
     data = request.get_json()
     try:
-        hashed = hash_password(data.get('password'))
-        supabase.table('users').insert({
+        db = get_db()
+        if not db: return jsonify({'success': False}), 500
+        hashed = bcrypt.hashpw(data.get('password').encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        db.table('users').insert({
             'name': data.get('name'),
             'email': data.get('email'),
             'password': hashed,
             'role': 'staff',
-            'gender': 'male' # Default
+            'gender': data.get('gender', 'male')
         }).execute()
-        return jsonify({'success': True, 'message': 'Staff added successfully'})
+        return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/admin/add-service', methods=['POST'])
 def add_service():
     if not is_logged_in() or session.get('role') != 'admin':
-        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+        return jsonify({'success': False}), 403
     data = request.get_json()
     try:
-        supabase.table('services').insert({
+        db = get_db()
+        if not db: return jsonify({'success': False}), 500
+        db.table('services').insert({
             'name': data.get('name'),
             'price': float(data.get('price')),
             'gender': data.get('gender'),
-            'duration': 30,
-            'description': data.get('description', 'Newly added service')
+            'description': data.get('description', '')
         }).execute()
-        return jsonify({'success': True, 'message': 'Service added successfully'})
+        return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -431,42 +409,35 @@ def add_service():
 def available_slots():
     date = request.args.get('date')
     service_id = request.args.get('service_id')
-    booked = supabase.table('appointments').select('time').eq('service_id', service_id).eq('date', date).eq('status', 'confirmed').execute()
-    booked_times = [b['time'] for b in booked.data]
-    all_slots = [f"{h:02d}:00" for h in range(9, 18)]
-    available = [s for s in all_slots if s not in booked_times]
-    return jsonify({'success': True, 'slots': available})
+    try:
+        db = get_db()
+        if not db: return jsonify([])
+        booked = db.table('appointments').select('time').eq('service_id', service_id).eq('date', date).eq('status', 'confirmed').execute()
+        booked_times = [b['time'] for b in booked.data]
+        all_slots = [f"{h:02d}:00" for h in range(9, 18)]
+        available = [s for s in all_slots if s not in booked_times]
+        return jsonify(available)
+    except:
+        return jsonify([])
 
-@app.route('/api/available-staff')
-def get_available_staff():
+@app.route('/api/staff/available')
+def staff_available():
     date = request.args.get('date')
     time = request.args.get('time')
     try:
-        # Get all staff
-        all_staff = supabase.table('users').select('id, name').eq('role', 'staff').execute()
-        
-        # Safe fetch for busy staff (handle missing column)
+        db = get_db()
+        if not db: return jsonify([])
+        all_staff = db.table('users').select('id, name').eq('role', 'staff').execute()
         try:
-            busy = supabase.table('appointments').select('staff_id').eq('date', date).eq('time', time).eq('status', 'confirmed').execute()
+            busy = db.table('appointments').select('staff_id').eq('date', date).eq('time', time).eq('status', 'confirmed').execute()
             busy_ids = [b['staff_id'] for b in busy.data]
         except:
-            # Column likely missing or table issues
             busy_ids = []
-        
         available = [s for s in all_staff.data if s['id'] not in busy_ids]
-        return jsonify({'success': True, 'staff': available})
-    except Exception as e:
-        print(f"STAFF FETCH ERROR: {e}")
-        return jsonify({'success': False, 'message': 'Specialist tracking currently unavailable', 'staff': []})
-
-@app.route('/booking-confirmation')
-def booking_confirmation():
-    return render_template('booking-confirmation.html')
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect('/')
+        return jsonify(available)
+    except:
+        return jsonify([])
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
