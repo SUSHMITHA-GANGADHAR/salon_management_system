@@ -51,7 +51,7 @@ else:
 # ===== DB RETRY HELPER =====
 def get_salon_settings():
     try:
-        res = supabase.table('salon_settings').select('*').eq('id', 1).single().execute()
+        res = get_db().table('salon_settings').select('*').eq('id', 1).single().execute()
         return res.data
     except:
         return {'name': 'Salon Pro', 'address': '123 Luxury Lane'}
@@ -85,7 +85,7 @@ def get_current_user():
     if not is_logged_in() or not supabase: return None
     try:
         user_id = session.get('user_id')
-        response = supabase.table('users').select('*').eq('id', user_id).execute()
+        response = get_db().table('users').select('*').eq('id', user_id).execute()
         return response.data[0] if response.data else None
     except Exception as e:
         print(f"Error fetching user: {e}")
@@ -112,7 +112,7 @@ def register():
         
         try:
             hashed = hash_password(password)
-            supabase.table('users').insert({
+            get_db().table('users').insert({
                 'name': name,
                 'email': email,
                 'password': hashed,
@@ -132,7 +132,7 @@ def login():
         password = data.get('password', '')
         
         try:
-            response = supabase.table('users').select('*').eq('email', email).execute()
+            response = get_db().table('users').select('*').eq('email', email).execute()
             if not response.data:
                 return jsonify({'success': False, 'message': 'Account not found'}), 401
             
@@ -178,7 +178,7 @@ def cancel_booking():
     bid = data.get('booking_id')
     reason = data.get('reason', 'No reason provided')
     try:
-        supabase.table('appointments').update({
+        get_db().table('appointments').update({
             'status': 'cancelled',
             'cancellation_reason': reason
         }).eq('id', bid).execute()
@@ -195,7 +195,7 @@ def dashboard():
         return redirect('/admin-dashboard' if role == 'admin' else '/staff-dashboard')
     
     try:
-        res = supabase.table('appointments').select('*, services(*)').eq('user_id', user['id']).order('date').execute()
+        res = get_db().table('appointments').select('*, services(*)').eq('user_id', user['id']).order('date').execute()
         bookings = res.data
         today_dt = date.today()
         for b in bookings:
@@ -213,7 +213,7 @@ def booking():
     gender = session.get('gender') or 'male'
     print(f"FETCHING SERVICES FOR GENDER: {gender}")
     try:
-        res = supabase.table('services').select('*').eq('gender', gender).execute()
+        res = get_db().table('services').select('*').eq('gender', gender).execute()
         services = res.data
     except:
         services = []
@@ -227,7 +227,7 @@ def staff_dashboard():
     user = get_current_user()
     try:
         # Fetch all bookings that are not cancelled or finished to show on active duty
-        res = supabase.table('appointments').select('*, customer:user_id(name), services(name, price), specialist:staff_id(name)').neq('status', 'cancelled').order('date').execute()
+        res = get_db().table('appointments').select('*, customer:user_id(name), services(name, price), specialist:staff_id(name)').neq('status', 'cancelled').order('date').execute()
         bookings = res.data
     except Exception as e:
         print(f"Staff Dashboard Error: {e}")
@@ -240,11 +240,11 @@ def admin_dashboard():
     user = get_current_user()
     try:
         # Fetch all bookings for analytics with explicit customer mapping
-        results = supabase.table('appointments').select('*, customer:user_id(name, email), services(*)').order('date').execute()
+        results = get_db().table('appointments').select('*, customer:user_id(name, email), services(*)').order('date').execute()
         all_bookings = results.data
         
-        customers = supabase.table('users').select('id', count='exact').eq('role', 'customer').execute()
-        staff = supabase.table('users').select('*').eq('role', 'staff').execute()
+        customers = get_db().table('users').select('id', count='exact').eq('role', 'customer').execute()
+        staff = get_db().table('users').select('*').eq('role', 'staff').execute()
         
         # Calculate revenue: 
         # 1. Start with initial deposits (₹50) from all paid bookings
@@ -276,7 +276,7 @@ def collect_balance():
     booking_id = data.get('id')
     
     try:
-        supabase.table('appointments').update({
+        get_db().table('appointments').update({
             'balance_paid': True,
             'status': 'finished'
         }).eq('id', booking_id).execute()
@@ -292,7 +292,7 @@ def create_balance_order():
     booking_id = data.get('id')
     
     try:
-        booking = supabase.table('appointments').select('*, services(*)').eq('id', booking_id).single().execute().data
+        booking = get_db().table('appointments').select('*, services(*)').eq('id', booking_id).single().execute().data
         if not booking: return jsonify({'success': False, 'message': 'Booking not found'}), 404
         
         # Calculate remaining balance: Total - 50 deposit
@@ -317,7 +317,7 @@ def verify_balance_payment():
     data = request.json
     try:
         # Update the booking in DB
-        supabase.table('appointments').update({
+        get_db().table('appointments').update({
             'balance_paid': True,
             'status': 'finished' # Mark as finished once balance is paid online
         }).eq('id', data.get('booking_id')).execute()
@@ -337,7 +337,7 @@ def verify_payment():
         if not verify_razorpay_signature(params_dict):
             raise Exception("Invalid Signature")
 
-        supabase.table('appointments').insert({
+        get_db().table('appointments').insert({
             'user_id': session['user_id'],
             'service_id': data.get('service_id'),
             'date': data.get('date'),
@@ -365,7 +365,7 @@ def update_booking_status():
     new_status = data.get('status')
     
     try:
-        supabase.table('appointments').update({'status': new_status}).eq('id', booking_id).execute()
+        get_db().table('appointments').update({'status': new_status}).eq('id', booking_id).execute()
         return jsonify({'success': True, 'message': f'Status updated to {new_status}'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -383,7 +383,7 @@ def reschedule_booking():
     try:
         # Check if rescheduling is within 1 hour limit (optional server-side check)
         # For simplicity, we just update the DB as per staff request
-        supabase.table('appointments').update({
+        get_db().table('appointments').update({
             'date': new_date,
             'time': new_time,
             'status': 'pending'  # Reset to pending for re-approval
@@ -399,7 +399,7 @@ def add_staff():
     data = request.get_json()
     try:
         hashed = hash_password(data.get('password'))
-        supabase.table('users').insert({
+        get_db().table('users').insert({
             'name': data.get('name'),
             'email': data.get('email'),
             'password': hashed,
@@ -416,7 +416,7 @@ def add_service():
         return jsonify({'success': False, 'message': 'Unauthorized'}), 403
     data = request.get_json()
     try:
-        supabase.table('services').insert({
+        get_db().table('services').insert({
             'name': data.get('name'),
             'price': float(data.get('price')),
             'gender': data.get('gender'),
@@ -431,7 +431,7 @@ def add_service():
 def available_slots():
     date = request.args.get('date')
     service_id = request.args.get('service_id')
-    booked = supabase.table('appointments').select('time').eq('service_id', service_id).eq('date', date).eq('status', 'confirmed').execute()
+    booked = get_db().table('appointments').select('time').eq('service_id', service_id).eq('date', date).eq('status', 'confirmed').execute()
     booked_times = [b['time'] for b in booked.data]
     all_slots = [f"{h:02d}:00" for h in range(9, 18)]
     available = [s for s in all_slots if s not in booked_times]
@@ -443,11 +443,11 @@ def get_available_staff():
     time = request.args.get('time')
     try:
         # Get all staff
-        all_staff = supabase.table('users').select('id, name').eq('role', 'staff').execute()
+        all_staff = get_db().table('users').select('id, name').eq('role', 'staff').execute()
         
         # Safe fetch for busy staff (handle missing column)
         try:
-            busy = supabase.table('appointments').select('staff_id').eq('date', date).eq('time', time).eq('status', 'confirmed').execute()
+            busy = get_db().table('appointments').select('staff_id').eq('date', date).eq('time', time).eq('status', 'confirmed').execute()
             busy_ids = [b['staff_id'] for b in busy.data]
         except:
             # Column likely missing or table issues
