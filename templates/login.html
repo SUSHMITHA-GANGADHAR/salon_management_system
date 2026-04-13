@@ -13,14 +13,14 @@
                 <label for="email"><i class="fas fa-envelope"></i> Email Address</label>
                 <input type="email" id="email" name="email" placeholder="john@example.com" required>
             </div>
-            <div style="margin-bottom: 30px; display: flex; flex-direction: column; width: 100%;">
-                <label for="password" style="margin-bottom: 8px; font-weight: 500; color: #333;"><i class="fas fa-lock" style="margin-right: 5px;"></i> Password</label>
-                <div style="position: relative; width: 100%;">
-                    <input type="password" id="password" name="password" placeholder="••••••••" style="width: 100%; padding: 12px; border: 1.5px solid #eaeaea; border-radius: 10px; font-size: 1rem;" required>
-                    <i class="fas fa-eye" id="togglePassword" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; font-size: 1.2rem; z-index: 10;"></i>
+            <div style="margin-bottom: 25px; width: 100%;">
+                <label for="password" style="display: block; margin-bottom: 8px; font-weight: 500; color: #333;"><i class="fas fa-lock" style="margin-right: 5px;"></i> Password</label>
+                <div style="display: flex; gap: 5px; width: 100%;">
+                    <input type="password" id="password" name="password" placeholder="••••••••" style="flex: 1; padding: 12px; border: 1.5px solid #eaeaea; border-radius: 8px; font-size: 1rem;" required>
+                    <button type="button" id="togglePasswordBtn" style="padding: 0 15px; border: 1.5px solid #eaeaea; border-radius: 8px; background: white; cursor: pointer; color: #666; font-size: 0.8rem; font-weight: 600;">SHOW</button>
                 </div>
                 <div style="width: 100%; text-align: right; margin-top: 10px;">
-                    <a href="/forgot-password" id="forgotLink" style="font-size: 0.85rem; color: #ff6f61 !important; text-decoration: none !important; font-weight: 500; display: inline-block;">Forgot password?</a>
+                    <a href="/forgot-password" style="font-size: 0.85rem; color: #ff6f61 !important; text-decoration: none !important; font-weight: 600;">Forgot password?</a>
                 </div>
             </div>
             <button type="submit" class="btn-primary w-100">Sign In</button>
@@ -32,13 +32,13 @@
 </div>
 
 <script>
-const togglePassword = document.getElementById('togglePassword');
+const togglePasswordBtn = document.getElementById('togglePasswordBtn');
 const password = document.getElementById('password');
 
-togglePassword.addEventListener('click', function (e) {
+togglePasswordBtn.addEventListener('click', function () {
     const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
     password.setAttribute('type', type);
-    this.classList.toggle('fa-eye-slash');
+    this.textContent = type === 'password' ? 'SHOW' : 'HIDE';
 });
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {

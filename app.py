@@ -159,12 +159,52 @@ def login():
             
             target = '/dashboard'
             if user['role'] == 'admin': target = '/admin-dashboard'
-            elif user['role'] == 'staff': target = '/staff-dashboard'
+            if user['role'] == 'staff': target = '/staff-dashboard'
             
             return jsonify({'success': True, 'redirect': target})
         except Exception as e:
             return jsonify({'success': False, 'message': str(e)}), 500
     return render_template('login.html')
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        data = request.get_json()
+        email = data.get('email', '').strip().lower()
+        
+        try:
+            # Check if user exists
+            res = supabase.table('users').select('id').eq('email', email).execute()
+            if not res.data:
+                return jsonify({'success': False, 'message': 'Account with this email does not exist.'})
+            
+            # In a real app, send mail here. For now, we redirect to reset.
+            return jsonify({'success': True, 'message': 'Redirecting to reset page...', 'redirect': f'/reset-password?email={email}'})
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)}), 500
+            
+    return render_template('forgot-password.html')
+
+@app.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    email = request.args.get('email')
+    if request.method == 'POST':
+        data = request.get_json()
+        email = data.get('email')
+        new_password = data.get('new_password')
+        confirm_password = data.get('confirm_password')
+        
+        if new_password != confirm_password:
+            return jsonify({'success': False, 'message': 'Passwords do not match.'})
+            
+        try:
+            hashed = hash_password(new_password)
+            supabase.table('users').update({'password': hashed}).eq('email', email).execute()
+            return jsonify({'success': True, 'message': 'Password updated successfully!', 'redirect': '/login'})
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)}), 500
+            
+    return render_template('reset-password.html', email=email)
 
 @app.route('/api/payment/create-order', methods=['POST'])
 def create_order():
