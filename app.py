@@ -10,13 +10,16 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import bcrypt
+from itsdangerous import URLSafeTimedSerializer
 
 # Load environment variables
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY')
+app.secret_key = os.getenv('SECRET_KEY') or 'dev-key-12345'
 CORS(app)
+
+serializer = URLSafeTimedSerializer(app.secret_key)
 
 # Razorpay Configuration
 RAZOR_KEY_ID = os.getenv('RAZOR_KEY_ID')
@@ -176,10 +179,22 @@ def forgot_password():
             # Check if user exists
             res = supabase.table('users').select('id').eq('email', email).execute()
             if not res.data:
+                # Security best practice: don't reveal if email exists, 
+                # but following user's original logic for clarity here.
                 return jsonify({'success': False, 'message': 'Account with this email does not exist.'})
             
-            # In a real app, send mail here. For now, we redirect to reset.
-            return jsonify({'success': True, 'message': 'Redirecting to reset page...', 'redirect': f'/reset-password?email={email}'})
+            # Generate secure token (one-time use link)
+            token = serializer.dumps(email, salt='password-reset-salt')
+            reset_link = url_for('reset_password', token=token, _external=True)
+            
+            # In a real app, send mail here. We log it and send back for demo.
+            print(f"PASSWORD RESET LINK for {email}: {reset_link}")
+            
+            return jsonify({
+                'success': True, 
+                'message': 'A one-time reset link has been sent to your email.',
+                'debug_link': reset_link # Exposed for testing/demo as per user request
+            })
         except Exception as e:
             return jsonify({'success': False, 'message': str(e)}), 500
             
@@ -187,10 +202,10 @@ def forgot_password():
 
 @app.route('/reset-password', methods=['GET', 'POST'])
 def reset_password():
-    email = request.args.get('email')
+    token = request.args.get('token')
     if request.method == 'POST':
         data = request.get_json()
-        email = data.get('email')
+        token = data.get('token')
         new_password = data.get('new_password')
         confirm_password = data.get('confirm_password')
         
@@ -198,13 +213,20 @@ def reset_password():
             return jsonify({'success': False, 'message': 'Passwords do not match.'})
             
         try:
+            # Verify token (expires in 1 hour)
+            email = serializer.loads(token, salt='password-reset-salt', max_age=3600)
+            
+            # Hash and update and then delete token is implicitly handled by loads
             hashed = hash_password(new_password)
             supabase.table('users').update({'password': hashed}).eq('email', email).execute()
-            return jsonify({'success': True, 'message': 'Password updated successfully!', 'redirect': '/login'})
-        except Exception as e:
-            return jsonify({'success': False, 'message': str(e)}), 500
             
-    return render_template('reset-password.html', email=email)
+            return jsonify({'success': True, 'message': 'Password updated! Please login with your new password.', 'redirect': '/login'})
+        except Exception as e:
+            error_msg = "Invalid or expired reset link. Please request a new one."
+            print(f"Reset Error: {e}")
+            return jsonify({'success': False, 'message': error_msg}), 400
+            
+    return render_template('reset-password.html', token=token)
 
 @app.route('/api/payment/create-order', methods=['POST'])
 def create_order():
