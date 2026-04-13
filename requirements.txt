@@ -1,9 +1,10 @@
 Flask==3.0.0
 Flask-CORS==4.0.0
 python-dotenv==1.0.0
-supabase==1.2.0
+supabase==2.3.0
 bcrypt==4.1.2
 requests==2.31.0
 gunicorn==21.2.0
-httpcore==1.0.2
-httpx==0.25.2
+python-dateutil==2.8.2
+postgrest==0.10.10
+tiny-storage==1.0.4
