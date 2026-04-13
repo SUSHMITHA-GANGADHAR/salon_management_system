@@ -39,11 +39,12 @@ SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("WARNING: SUPABASE_URL or SUPABASE_KEY not found. Supabase is disabled.")
+    print("CRITICAL: SUPABASE_URL or SUPABASE_KEY is empty!")
     supabase = None
 else:
+    print(f"Supabase attempting connection to: {SUPABASE_URL[:15]}...")
     try:
-        supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        supabase: Client = create_client(SUPABASE_URL.strip(), SUPABASE_KEY.strip())
     except Exception as e:
         print(f"Supabase connection failed: {e}")
         supabase = None
@@ -92,6 +93,16 @@ def get_current_user():
         return None
 
 # ===== ROUTES =====
+
+@app.route('/check-env')
+def check_env():
+    return {
+        'SUPABASE_URL_SET': bool(os.getenv('SUPABASE_URL')),
+        'SUPABASE_KEY_SET': bool(os.getenv('SUPABASE_KEY')),
+        'RAZOR_KEY_SET': bool(os.getenv('RAZOR_KEY_ID')),
+        'RENDER': bool(os.getenv('RENDER')),
+        'PYTHON_VERSION': os.getenv('PYTHON_VERSION')
+    }
 
 @app.route('/')
 def index():
