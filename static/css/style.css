@@ -473,15 +473,7 @@ h1, h2, h3, .logo { font-family: 'Playfair Display', serif; }
     font-size: 0.95rem;
 }
 
-.forgot-link {
-    display: block;
-    text-align: right;
-    margin-top: -0.5rem;
-    margin-bottom: 1.5rem;
-    font-size: 0.8rem;
-    color: var(--primary);
-    text-decoration: none;
-}
+
 
 .auth-card .btn-primary {
     width: auto; /* Shrink to fit text */

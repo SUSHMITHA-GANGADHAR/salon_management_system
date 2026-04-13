@@ -1,0 +1,285 @@
+{% extends "layout.html" %}
+{% block title %}My Portal | Salon Pro{% endblock %}
+
+{% block content %}
+<div class="dashboard-layout" style="display: flex; min-height: 100vh; background: #f8f9fa;">
+    <!-- SIDEBAR -->
+    <aside
+        style="width: 280px; background: #fff; border-right: 1px solid #eee; padding: 2rem; position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column;">
+        <div style="margin-bottom: 3rem; text-align: center;">
+            <i class="fas fa-user-circle" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem;"></i>
+            <h2 style="font-family: 'Playfair Display', serif;">My Account</h2>
+        </div>
+        <nav style="flex: 1;">
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin-bottom: 0.5rem;"><a href="#" onclick="showTab('main')" class="nav-link active"
+                        id="link-main"
+                        style="display: flex; gap: 1rem; padding: 1rem; border-radius: 12px; font-weight: 500; text-decoration: none; color: var(--dark);"><i
+                            class="fas fa-calendar-check"></i> ACTIVE SLOTS</a></li>
+                <li style="margin-bottom: 0.5rem;"><a href="#" onclick="showTab('history')" class="nav-link"
+                        id="link-history"
+                        style="display: flex; gap: 1rem; padding: 1rem; border-radius: 12px; font-weight: 500; text-decoration: none; color: var(--text-muted);"><i
+                            class="fas fa-history"></i> SERVICE RECORDS</a></li>
+                <li style="margin-bottom: 0.5rem;"><a href="#" onclick="showTab('profile')" class="nav-link"
+                        id="link-profile"
+                        style="display: flex; gap: 1rem; padding: 1rem; border-radius: 12px; font-weight: 500; text-decoration: none; color: var(--text-muted);"><i
+                            class="fas fa-id-card"></i> MY IDENTITY</a></li>
+            </ul>
+        </nav>
+        <div style="margin-top: auto; padding-top: 2rem; border-top: 1px solid #eee;">
+            <a href="/logout" style="color: var(--primary); text-decoration: none; font-weight: 600;"><i
+                    class="fas fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main
+        style="flex: 1; padding: 3rem; background: url('/static/images/dash-bg.png') no-repeat center center/cover fixed;">
+        <div class="dashboard-inner"
+            style="background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); min-height: 100%; border-radius: 30px; padding: 3rem; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert"
+                style="background: #e6fffa; color: #047481; padding: 1rem; border-radius: 12px; margin-bottom: 2rem;">{{
+                message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <!-- TAB: MAIN -->
+            <div id="tab-main" class="dash-tab">
+                <header
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem;">
+                    <div>
+                        <h1
+                            style="background: var(--vibrant-dual); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+                            My Transformation Slots</h1>
+                        <p style="color: var(--text-muted);">Secure your luxury transformation and manage deposits</p>
+                    </div>
+                    <a href="/booking" class="btn-primary"
+                        style="padding: 1rem 2rem; border-radius: 15px; text-decoration: none; color: #fff; font-weight: 600;">+
+                        Book New</a>
+                </header>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 2rem;">
+                    {% for b in bookings if b.status in ['pending', 'approved'] %}
+                    <div class="card"
+                        style="border: 2px solid rgba(255,111,97,0.1); position: relative; border-radius: 20px; padding: 2.5rem; background: #fff;">
+                        {% if b.status == 'pending' %}
+                        <div
+                            style="position: absolute; top: 1rem; right: 1rem; background: #fff3cd; color: #856404; padding: 0.3rem 0.8rem; border-radius: 50px; font-size: 0.65rem; font-weight: 700; border: 1px solid #ffeeba;">
+                            PENDING</div>
+                        {% else %}
+                        <div
+                            style="position: absolute; top: 1rem; right: 1rem; background: #e6fffa; color: #047481; padding: 0.3rem 0.8rem; border-radius: 50px; font-size: 0.65rem; font-weight: 700; border: 1px solid #b2f5ea;">
+                            APPROVED</div>
+                        {% endif %}
+
+                        <h3 style="margin-bottom: 1.5rem; color: var(--primary);">{{ b.services.name }}</h3>
+                        <div
+                            style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; color: var(--text-muted);">
+                            <i class="fas fa-calendar"></i> <span>{{ b.date }}</span>
+                        </div>
+                        <div
+                            style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 2rem; color: var(--text-muted);">
+                            <i class="fas fa-clock"></i> <span>{{ b.time }}</span>
+                        </div>
+
+                        {% if not b.balance_paid %}
+                        <button onclick="handleBalancePayment(this)" data-id="{{ b.id }}"
+                            data-price="{{ b.services.price if b.services else 0 }}"
+                            style="width: 100%; padding: 1rem; border-radius: 12px; background: #28a745; color: #fff; border: none; cursor: pointer; font-weight: 700; margin-bottom: 0.8rem;">
+                            <i class="fas fa-credit-card"></i> Pay Balance (₹{{ (b.services.price - 50) if b.services
+                            else 0 }})
+                        </button>
+                        {% endif %}
+
+                        <button onclick="cancelBooking('{{ b.id }}')"
+                            style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee; background: #fff; cursor: pointer; color: #ff6f61; font-weight: 600;">Cancel
+                            My Slot</button>
+                    </div>
+                    {% else %}
+                    <div class="card" style="grid-column: 1/-1; text-align: center; padding: 5rem; background: #fff;">
+                        <i class="fas fa-calendar-alt"
+                            style="font-size: 4rem; opacity: 0.1; margin-bottom: 2rem; display: block;"></i>
+                        <p style="color: var(--text-muted);">No active salon slots found. Ready for a new look?</p>
+                        <a href="/booking" class="btn-primary"
+                            style="display: inline-block; margin-top: 2rem; text-decoration: none; padding: 1.2rem 3.5rem;">Secure
+                            a Slot</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- TAB: HISTORY -->
+            <div id="tab-history" class="dash-tab" style="display: none;">
+                <h2 style="margin-bottom: 1.5rem;">Service Records</h2>
+                <div class="card" style="padding: 0; overflow: hidden; border: 1px solid #eee; background: #fff;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #fafafa; font-size: 0.8rem; text-transform: uppercase;">
+                            <tr>
+                                <th style="padding: 1.5rem;">Service</th>
+                                <th style="padding: 1.5rem;">Date</th>
+                                <th style="padding: 1.5rem; text-align: center;">Status & Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in bookings %}
+                            <tr style="border-top: 1px solid #eee;">
+                                <td style="padding: 1.5rem; font-weight: 600;">{{ b.services.name }}</td>
+                                <td style="padding: 1.5rem;">{{ b.date }}</td>
+                                <td style="padding: 1.5rem; text-align: center;">
+                                    <div
+                                        style="display: flex; align-items: center; justify-content: center; gap: 0.8rem;">
+                                        <span class="status-{{ b.status }}"
+                                            style="padding: 0.4rem 1rem; border-radius: 50px; font-size: 0.65rem; font-weight: 700;">{{
+                                            b.status|upper }}</span>
+
+                                        {% if not b.balance_paid and b.status != 'cancelled' %}
+                                        <button onclick="handleBalancePayment(this)" data-id="{{ b.id }}"
+                                            data-price="{{ b.services.price if b.services else 0 }}"
+                                            style="background: #28a745; color: #fff; border: none; padding: 0.4rem 1rem; border-radius: 50px; font-size: 0.65rem; font-weight: 700; cursor: pointer; text-transform: uppercase;">
+                                            PAY
+                                        </button>
+                                        {% elif b.balance_paid %}
+                                        <i class="fas fa-check-circle" style="color: #2ecc71;" title="Fully Paid"></i>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB: PROFILE -->
+            <div id="tab-profile" class="dash-tab" style="display: none;">
+                <h2 style="margin-bottom: 2rem;">Profile Identity</h2>
+                <div class="card" style="max-width: 600px; padding: 3rem; background: #fff; border-radius: 25px;">
+                    <div style="margin-bottom: 2rem;">
+                        <label
+                            style="font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">NAME</label>
+                        <p style="font-size: 1.3rem; margin-top: 0.5rem; font-weight: 600;">{{ user.name }}</p>
+                    </div>
+                    <div style="margin-bottom: 2rem;">
+                        <label
+                            style="font-weight: 700; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase;">EMAIL</label>
+                        <p style="font-size: 1.3rem; margin-top: 0.5rem;">{{ user.email }}</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    function showTab(t) {
+        document.querySelectorAll('.dash-tab').forEach(tab => tab.style.display = 'none');
+        document.getElementById('tab-' + t).style.display = 'block';
+        document.querySelectorAll('.nav-link').forEach(l => {
+            l.style.color = 'var(--text-muted)';
+            l.style.background = 'transparent';
+            l.classList.remove('active');
+        });
+        const active = document.getElementById('link-' + t);
+        active.style.color = 'var(--dark)';
+        active.style.background = '#fcfcfc';
+        active.classList.add('active');
+    }
+
+    async function handleBalancePayment(btn) {
+        const id = btn.getAttribute('data-id');
+        const price = parseInt(btn.getAttribute('data-price')) || 0;
+        const balance = price - 50;
+        if (balance <= 0) return alert("All settled!");
+
+        try {
+            const res = await fetch('/api/booking/create-balance-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            const orderData = await res.json();
+            if (!orderData.success) return alert(orderData.message);
+
+            const options = {
+                "key": "{{ RAZOR_KEY_ID }}",
+                "amount": orderData.amount,
+                "currency": "INR",
+                "name": "Salon Pro",
+                "description": "Remaining Balance Settlement",
+                "order_id": orderData.order_id,
+                "handler": async function (response) {
+                    const verifyRes = await fetch('/api/booking/verify-balance-payment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ booking_id: id, ...response })
+                    });
+                    const verifyData = await verifyRes.json();
+                    if (verifyData.success) {
+                        alert('Transaction Completed Successful!');
+                        location.reload();
+                    }
+                },
+                "theme": { "color": "#ff6f61" }
+            };
+            const rzp = new Razorpay(options);
+            rzp.open();
+        } catch (e) {
+            console.error("Payment Error:", e);
+            alert("Authentication failed. Please refresh and try again.");
+        }
+    }
+
+    async function cancelBooking(bid) {
+        const reason = prompt('Reason:');
+        if (reason) {
+            try {
+                const res = await fetch('/api/booking/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: bid, reason: reason })
+                });
+                const data = await res.json();
+                if (data.success) location.reload();
+            } catch (e) { alert("Error."); }
+        }
+    }
+</script>
+
+<style>
+    .nav-link.active {
+        background: #fcfcfc !important;
+        color: var(--primary) !important;
+        font-weight: 700 !important;
+    }
+
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+    }
+
+    .status-approved,
+    .status-confirmed {
+        background: #e6fffa;
+        color: #047481;
+        border: 1px solid #b2f5ea;
+    }
+
+    .status-cancelled {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .status-finished {
+        background: #d4edda;
+        color: #155724;
+    }
+</style>
+{% endblock %}
