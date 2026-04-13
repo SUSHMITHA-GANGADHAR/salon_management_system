@@ -31,9 +31,9 @@
 
             <div style="margin-bottom: 25px; display: flex; flex-direction: column; width: 100%;">
                 <label style="margin-bottom: 8px; font-weight: 500; color: #333;"><i class="fas fa-lock" style="margin-right: 5px;"></i> Password</label>
-                <div style="position: relative; width: 100%;">
-                    <input type="password" id="password" name="password" placeholder="••••••••" style="width: 100%; padding: 12px; border: 1.5px solid #eaeaea; border-radius: 10px; font-size: 1rem;" required>
-                    <i class="fas fa-eye" id="togglePassword" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888; font-size: 1.2rem; z-index: 10;"></i>
+                <div style="display: flex; gap: 8px; width: 100%;">
+                    <input type="password" id="password" name="password" placeholder="••••••••" style="flex: 1; padding: 12px; border: 1.5px solid #eaeaea; border-radius: 10px; font-size: 1rem;" required>
+                    <button type="button" id="togglePasswordBtn" style="padding: 0 15px; border: 1.5px solid #eaeaea; border-radius: 8px; background: white; cursor: pointer; color: #ff6f61; font-size: 0.8rem; font-weight: 700;">SHOW</button>
                 </div>
             </div>
             <div class="form-group">
@@ -52,13 +52,13 @@
 </div>
 
 <script>
-const togglePassword = document.getElementById('togglePassword');
+const togglePasswordBtn = document.getElementById('togglePasswordBtn');
 const password = document.getElementById('password');
 
-togglePassword.addEventListener('click', function (e) {
+togglePasswordBtn.addEventListener('click', function () {
     const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
     password.setAttribute('type', type);
-    this.classList.toggle('fa-eye-slash');
+    this.textContent = type === 'password' ? 'SHOW' : 'HIDE';
 });
 
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
@@ -76,10 +76,10 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
         });
         const result = await res.json();
         if (result.success) {
-            alert(result.message);
-            window.location.href = result.redirect;
+            alert(result.message || "Registration successful!");
+            window.location.href = result.redirect || '/login';
         } else {
-            alert(result.message);
+            alert(result.message || "Registration failed. Please check your details.");
         }
     } catch (err) {
         console.error(err);
