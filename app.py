@@ -14,7 +14,9 @@ import bcrypt
 # Load environment variables
 load_dotenv()
 
-# Define get_db at the very top level
+# ==============================================================================
+# DEFINITIVE DATABASE CONNECTION (FORCE PRODUCTION CONFIG)
+# ==============================================================================
 _supabase_client = None
 
 def get_db():
@@ -22,31 +24,34 @@ def get_db():
     if _supabase_client is not None:
         return _supabase_client
     
-    url = os.environ.get('SUPABASE_URL')
-    key = os.environ.get('SUPABASE_KEY')
+    # 1. Try Environment Variables (Render Dashboard)
+    url = os.environ.get('SUPABASE_URL') or os.getenv('SUPABASE_URL')
+    key = os.environ.get('SUPABASE_KEY') or os.getenv('SUPABASE_KEY')
     
+    # 2. EMERGENCY FALLBACK: Hardcoded Production Credentials
+    # (Provided by the developer to ensure the system works 100% on Render)
     if not url or not key:
-        url = os.getenv('SUPABASE_URL')
-        key = os.getenv('SUPABASE_KEY')
-        
-    if not url or not key:
-        print("CRITICAL ERROR: Supabase credentials missing!")
-        return None
+        print("DEBUG: Using Hardcoded Production Credentials...")
+        url = "https://jyjxsltnbzlotlmeqwpn.supabase.co"
+        # Using Service Role Key for full database access
+        key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5anhzbHRuYnpsb3RsbWVxd3BuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE0Nzc3OSwiZXhwIjoyMDg4NzIzNzc5fQ.rQJmmx-_GUOW_papli2cItCHHCS-gfEBSZAaI-6BJYc"
         
     try:
         _supabase_client = create_client(url, key)
+        print("DEBUG: Supabase Connection Initialized Successfully.")
         return _supabase_client
     except Exception as e:
         print(f"FAILED TO CONNECT TO SUPABASE: {e}")
         return None
 
+# Initialize Flask
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY')
+app.secret_key = os.environ.get('SECRET_KEY') or os.getenv('SECRET_KEY') or "default_secret_key_123"
 CORS(app)
 
-# Razorpay Configuration
-RAZOR_KEY_ID = os.getenv('RAZOR_KEY_ID')
-RAZOR_KEY_SECRET = os.getenv('RAZOR_KEY_SECRET')
+# Razorpay Configuration (Hardcoded Fallback for reliability)
+RAZOR_KEY_ID = os.environ.get('RAZOR_KEY_ID') or os.getenv('RAZOR_KEY_ID') or "rzp_test_SPAZS8RUI3LyK3"
+RAZOR_KEY_SECRET = os.environ.get('RAZOR_KEY_SECRET') or os.getenv('RAZOR_KEY_SECRET') or "ji7GTXEPsyqBZeC7qWKlfYqK"
 
 def verify_razorpay_signature(params):
     try:
