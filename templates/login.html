@@ -15,8 +15,13 @@
             </div>
             <div class="form-group">
                 <label for="password"><i class="fas fa-lock"></i> Password</label>
-                <input type="password" id="password" name="password" placeholder="••••••••" required>
-                <a href="/forgot-password" class="forgot-link">Forgot password?</a>
+                <div style="position: relative;">
+                    <input type="password" id="password" name="password" placeholder="••••••••" style="width: 100%;" required>
+                    <i class="fas fa-eye" id="togglePassword" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted);"></i>
+                </div>
+                <div style="text-align: right; margin-top: 5px;">
+                    <a href="/forgot-password" class="forgot-link" style="font-size: 0.8rem; color: var(--primary); text-decoration: none;">Forgot password?</a>
+                </div>
             </div>
             <button type="submit" class="btn-primary w-100">Sign In</button>
         </form>
@@ -27,6 +32,15 @@
 </div>
 
 <script>
+const togglePassword = document.getElementById('togglePassword');
+const password = document.getElementById('password');
+
+togglePassword.addEventListener('click', function (e) {
+    const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+    password.setAttribute('type', type);
+    this.classList.toggle('fa-eye-slash');
+});
+
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
