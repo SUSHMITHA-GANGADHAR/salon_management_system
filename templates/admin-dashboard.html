@@ -225,8 +225,66 @@
                 </div>
             </div>
 
-        </div>
+</div>
     </main>
+</div>
+
+<!-- MODALS -->
+<div id="modal-staff" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 10000; justify-content: center; align-items: center;">
+    <div class="modal-card" style="background: #fff; width: 100%; max-width: 500px; padding: 3rem; border-radius: 25px; box-shadow: 0 25px 50px rgba(0,0,0,0.2);">
+        <h2 style="margin-bottom: 2rem;">Add New Staff</h2>
+        <form id="form-staff">
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">Full Name</label>
+                <input type="text" name="name" required style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee;">
+            </div>
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">Email Address</label>
+                <input type="email" name="email" required style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee;">
+            </div>
+            <div style="margin-bottom: 2rem;">
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">Password</label>
+                <input type="password" name="password" required style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee;">
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button type="button" onclick="closeModal('staff')" style="flex: 1; padding: 1rem; border-radius: 12px; border: none; background: #f0f0f0; cursor: pointer;">Cancel</button>
+                <button type="submit" style="flex: 2; padding: 1rem; border-radius: 12px; border: none; background: var(--primary); color: #fff; font-weight: 600; cursor: pointer;">Securely Add</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-service" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); z-index: 10000; justify-content: center; align-items: center;">
+    <div class="modal-card" style="background: #fff; width: 100%; max-width: 550px; padding: 3rem; border-radius: 25px; box-shadow: 0 25px 50px rgba(0,0,0,0.2);">
+        <h2 style="margin-bottom: 2rem;">Publish New Service</h2>
+        <form id="form-service">
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">Service Name</label>
+                <input type="text" name="name" placeholder="E.g. Royal Shave" required style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee;">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div>
+                    <label style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">Price (₹)</label>
+                    <input type="number" name="price" required style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">Category</label>
+                    <select name="gender" style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee; background: #fff;">
+                        <option value="male">Male Grooming</option>
+                        <option value="female">Female Salon</option>
+                    </select>
+                </div>
+            </div>
+            <div style="margin-bottom: 2rem;">
+                <label style="display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">Description</label>
+                <textarea name="description" rows="3" style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px solid #eee; font-family: inherit; resize: none;"></textarea>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button type="button" onclick="closeModal('service')" style="flex: 1; padding: 1rem; border-radius: 12px; border: none; background: #f0f0f0; cursor: pointer;">Cancel</button>
+                <button type="submit" style="flex: 2; padding: 1rem; border-radius: 12px; border: none; background: var(--primary); color: #fff; font-weight: 600; cursor: pointer;">Publish Service</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script id="bookings-data" type="application/json">
@@ -301,6 +359,60 @@
             });
         } catch (e) { console.error("Chart Error:", e); }
     }
+
+    window.openModal = function(m) {
+        const modal = document.getElementById('modal-' + m);
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.style.animation = 'fadeIn 0.3s ease';
+        }
+    }
+
+    window.closeModal = function(m) {
+        const modal = document.getElementById('modal-' + m);
+        if (modal) modal.style.display = 'none';
+    }
+
+    // FORM HANDLERS
+    document.getElementById('form-staff')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        try {
+            const res = await fetch('/api/admin/add-staff', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert("Staff member successfully deployed to global team!");
+                window.location.reload();
+            } else {
+                alert("ERROR: " + result.message);
+            }
+        } catch (err) { alert("Deployment failed. Check network."); }
+    });
+
+    document.getElementById('form-service')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        try {
+            const res = await fetch('/api/admin/add-service', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert("New service published to global catalog!");
+                window.location.reload();
+            } else {
+                alert("ERROR: " + result.message);
+            }
+        } catch (err) { alert("Publication failed. Check network."); }
+    });
 </script>
 
 <style>
@@ -334,6 +446,11 @@
     .status-cancelled {
         background: #f8d7da;
         color: #721c24;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
     }
 </style>
 {% endblock %}
