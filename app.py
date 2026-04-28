@@ -13,7 +13,7 @@ import bcrypt
 from itsdangerous import URLSafeTimedSerializer
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=True)
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY') or 'dev-key-12345'

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
     role VARCHAR(50) DEFAULT 'customer',
     cancellation_count INT DEFAULT 0,
     is_blocked BOOLEAN DEFAULT FALSE,
+    gender VARCHAR(50) DEFAULT 'male',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
